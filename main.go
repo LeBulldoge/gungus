@@ -36,21 +36,20 @@ func main() {
 				Type: discordgo.InteractionResponseDeferredMessageUpdate,
 			})
 
-			var votes map[string]int
-			voteCustomID := intr.MessageComponentData().CustomID
-			if poll, ok := polls[intr.Message.ID]; ok {
+			poll, ok := polls[intr.Message.ID]
+			if ok {
+				voteCustomID := intr.MessageComponentData().CustomID
 				err = poll.castVote(intr.Member.User.ID, voteCustomID)
 				if err != nil {
 					log.Printf("error casting vote for poll %s: %v", intr.Message.ID, err)
+					return
 				}
-
-				votes = poll.getVotes()
 			} else {
 				log.Printf("error getting poll for message ID %s", intr.Message.ID)
 				return
 			}
 
-			chartStr := plotBarChart("Plot", votes)
+			chartStr := plotBarChart(poll.Title, poll.getVotes())
 			msg := discordgo.NewMessageEdit(intr.ChannelID, intr.Message.ID)
 			msg.Content = &chartStr
 

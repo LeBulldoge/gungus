@@ -7,6 +7,7 @@ import (
 )
 
 type Poll struct {
+	Title   string
 	Options map[string][]string
 }
 

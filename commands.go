@@ -56,8 +56,10 @@ var (
 			}
 
 			poll := Poll{
+				Title:   opt.Options[0].StringValue(),
 				Options: make(map[string][]string),
 			}
+
 			pollButtons := []discordgo.MessageComponent{}
 			for i := 0; i < len(pollAnsText); i++ {
 				spl := strings.Split(pollAnsText[i], ";")
@@ -83,7 +85,7 @@ var (
 			err := s.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: opt.Options[0].StringValue(),
+					Content: plotBarChart(poll.Title, poll.getVotes()),
 					Components: []discordgo.MessageComponent{
 						discordgo.ActionsRow{
 							Components: pollButtons,
