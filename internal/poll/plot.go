@@ -1,4 +1,4 @@
-package main
+package poll
 
 import (
 	"sort"
@@ -11,7 +11,7 @@ var (
 	full  = "🔲"
 )
 
-func plotBarChart(title string, values map[string]int) string {
+func PlotBarChart(title string, values map[string]int) string {
 	var sb strings.Builder
 	sb.WriteString(title)
 	sb.WriteRune('\n')

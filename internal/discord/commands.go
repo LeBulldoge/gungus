@@ -1,10 +1,11 @@
-package main
+package discord
 
 import (
 	"fmt"
 	"log"
 	"strings"
 
+	"github.com/LeBulldoge/gungus/internal/poll"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -55,10 +56,7 @@ var (
 				}
 			}
 
-			poll := Poll{
-				Title:   opt.Options[0].StringValue(),
-				Options: make(map[string][]string),
-			}
+			p := poll.New(opt.Options[0].StringValue())
 
 			pollButtons := []discordgo.MessageComponent{}
 			for i := 0; i < len(pollAnsText); i++ {
@@ -79,7 +77,7 @@ var (
 					Style:    discordgo.SecondaryButton,
 				}
 
-				poll.Options[btn.CustomID] = []string{}
+				p.Options[btn.CustomID] = []string{}
 
 				pollButtons = append(pollButtons, btn)
 			}
@@ -87,7 +85,7 @@ var (
 			err := s.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: plotBarChart(poll.Title, poll.getVotes()),
+					Content: poll.PlotBarChart(p.Title, p.GetVotes()),
 					Components: []discordgo.MessageComponent{
 						discordgo.ActionsRow{
 							Components: pollButtons,
@@ -106,7 +104,7 @@ var (
 				return
 			}
 
-			polls[msg.ID] = poll
+			polls[msg.ID] = p
 		},
 	}
 )

@@ -1,4 +1,4 @@
-package main
+package poll
 
 import (
 	"fmt"
@@ -11,7 +11,14 @@ type Poll struct {
 	Options map[string][]string
 }
 
-func (p *Poll) getVotes() map[string]int {
+func New(title string) Poll {
+	return Poll{
+		Title:   title,
+		Options: make(map[string][]string),
+	}
+}
+
+func (p *Poll) GetVotes() map[string]int {
 	res := make(map[string]int)
 	total := 0
 
@@ -24,7 +31,7 @@ func (p *Poll) getVotes() map[string]int {
 	return res
 }
 
-func (p *Poll) castVote(user string, vote string) error {
+func (p *Poll) CastVote(user string, vote string) error {
 	for opt, votes := range p.Options {
 		i := slices.Index(votes, user)
 		if i != -1 {
