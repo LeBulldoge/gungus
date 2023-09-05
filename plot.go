@@ -1,16 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"image/color"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/benoitmasson/plotters/piechart"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
 )
 
 var (
@@ -47,33 +39,4 @@ func plotBarChart(title string, values map[string]int) string {
 	}
 
 	return sb.String()
-}
-
-func plotPieChart(name string, values map[string]int) (string, error) {
-	p := plot.New()
-	p.HideAxes()
-
-	pval := plotter.Values{}
-	for _, value := range values {
-		pval = append(pval, float64(value))
-	}
-
-	pie, err := piechart.NewPieChart(pval)
-	if err != nil {
-		panic(err)
-	}
-
-	for label := range values {
-		pie.Labels.Nominal = append(pie.Labels.Nominal, label)
-	}
-	pie.Labels.Values.Show = true
-	pie.Labels.Values.Percentage = true
-
-	pie.Color = color.RGBA{255, 0, 0, 255}
-
-	p.Add(pie)
-
-	filename := fmt.Sprintf("%s_%d.png", name, time.Now().Unix())
-
-	return filename, p.Save(4*vg.Inch, 4*vg.Inch, filename)
 }
