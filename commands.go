@@ -70,9 +70,10 @@ var (
 				}
 
 				emoji := emojiComponentFromString(emojiStr)
+				customID := fmt.Sprintf("%d_%s", i, strings.Trim(emojiStr, " "))
 
 				btn := discordgo.Button{
-					CustomID: strings.Trim(emojiStr, " "),
+					CustomID: customID,
 					Label:    labelStr,
 					Emoji:    emoji,
 					Style:    discordgo.SecondaryButton,
@@ -82,6 +83,7 @@ var (
 
 				pollButtons = append(pollButtons, btn)
 			}
+
 			err := s.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{

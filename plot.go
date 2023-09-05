@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -15,14 +16,20 @@ func plotBarChart(title string, values map[string]int) string {
 	sb.WriteString(title)
 	sb.WriteRune('\n')
 
+	labels := make([]string, 0, len(values)/2)
 	total := 0
-	for _, v := range values {
+	for k, v := range values {
 		total += v
+		labels = append(labels, k)
 	}
 
-	for k, v := range values {
-		sb.WriteString(k + " ")
-		res := (float64(v) / float64(total)) * 10
+	sort.Strings(labels)
+	for _, s := range labels {
+		label := strings.Split(s, "_")[1]
+		value := values[s]
+
+		sb.WriteString(label + " ")
+		res := (float64(value) / float64(total)) * 10
 		for i := 0; i < 10; i++ {
 			if i < int(res) {
 				sb.WriteString(full)
@@ -32,7 +39,7 @@ func plotBarChart(title string, values map[string]int) string {
 		}
 
 		sb.WriteRune(' ')
-		sb.WriteString(strconv.Itoa(v))
+		sb.WriteString(strconv.Itoa(value))
 		sb.WriteRune('/')
 		sb.WriteString(strconv.Itoa(total))
 		sb.WriteRune('\n')
