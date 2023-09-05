@@ -10,6 +10,19 @@ type Poll struct {
 	Options map[string][]string
 }
 
+func (p *Poll) getVotes() map[string]int {
+	res := make(map[string]int)
+	total := 0
+
+	for opt, votes := range p.Options {
+		cnt := len(votes)
+		res[opt] = cnt
+		total += cnt
+	}
+
+	return res
+}
+
 func (p *Poll) castVote(user string, vote string) error {
 	for opt, votes := range p.Options {
 		i := slices.Index(votes, user)

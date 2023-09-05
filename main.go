@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -14,104 +13,6 @@ import (
 // flags
 var (
 	BotToken = flag.String("token", "", "Bot token")
-)
-
-func buildPollCreateArgs() []*discordgo.ApplicationCommandOption {
-	res := []*discordgo.ApplicationCommandOption{
-		{
-			Name:        "title",
-			Description: "Title of the poll",
-			Type:        discordgo.ApplicationCommandOptionString,
-			Required:    true,
-		},
-	}
-	for i := 0; i < 6; i++ {
-		res = append(res, &discordgo.ApplicationCommandOption{
-			Name:        fmt.Sprintf("option_%d", i),
-			Description: fmt.Sprintf("Option number %d. Format: <emoji>;<description>", i),
-			Type:        discordgo.ApplicationCommandOptionString,
-			Required:    i < 2,
-		})
-	}
-
-	return res
-}
-
-var (
-	commands = []*discordgo.ApplicationCommand{
-		{
-			Name:        "poll",
-			Description: "Interact with polls",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "start",
-					Description: "Start a poll",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options:     buildPollCreateArgs(),
-				},
-			},
-		},
-	}
-	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"poll": func(s *discordgo.Session, intr *discordgo.InteractionCreate) {
-			opt := intr.ApplicationCommandData().Options[0]
-
-			var pollAnsText []string
-			for _, v := range opt.Options[1:] {
-				if v.StringValue() != "" {
-					pollAnsText = append(pollAnsText, v.StringValue())
-				}
-			}
-
-			poll := Poll{
-				Options: make(map[string][]string),
-			}
-			pollButtons := []discordgo.MessageComponent{}
-			for i := 0; i < len(pollAnsText); i++ {
-				spl := strings.Split(pollAnsText[i], ";")
-				emojiStr, labelStr := spl[0], spl[1]
-				if len(spl) < 2 {
-					log.Printf("Formatting of option #%d failed: %s", i, pollAnsText[i])
-					return
-				}
-
-				emoji := emojiComponentFromString(emojiStr)
-
-				btn := discordgo.Button{
-					CustomID: "option_" + emoji.Name + "_" + labelStr,
-					Label:    labelStr,
-					Emoji:    emoji,
-					Style:    discordgo.SecondaryButton,
-				}
-
-				poll.Options[btn.CustomID] = []string{}
-
-				pollButtons = append(pollButtons, btn)
-			}
-			err := s.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: opt.Options[0].StringValue(),
-					Components: []discordgo.MessageComponent{
-						discordgo.ActionsRow{
-							Components: pollButtons,
-						},
-					},
-				},
-			})
-			if err != nil {
-				log.Printf("Attemped to respond and failed: %v", err)
-				return
-			}
-
-			msg, err := s.InteractionResponse(intr.Interaction)
-			if err != nil {
-				log.Printf("Attemped to get message and failed: %v", err)
-				return
-			}
-			polls[msg.ID] = poll
-		},
-	}
 )
 
 var polls = make(map[string]Poll)
@@ -135,20 +36,27 @@ func main() {
 				Type: discordgo.InteractionResponseDeferredMessageUpdate,
 			})
 
-			var pollStr string
+			var votes map[string]int
 			voteCustomID := intr.MessageComponentData().CustomID
 			if poll, ok := polls[intr.Message.ID]; ok {
 				err = poll.castVote(intr.Member.User.ID, voteCustomID)
 				if err != nil {
-					log.Printf("Error casting vote for poll %s: %v", intr.Message.ID, err)
+					log.Printf("error casting vote for poll %s: %v", intr.Message.ID, err)
 				}
 
-				pollStr = fmt.Sprintf("%+v", poll)
+				votes = poll.getVotes()
+			} else {
+				log.Printf("error getting poll for message ID %s", intr.Message.ID)
+				return
 			}
 
-			_, err := s.ChannelMessageEdit(intr.ChannelID, intr.Message.ID, pollStr)
+			chartStr := plotBarChart("Plot", votes)
+			msg := discordgo.NewMessageEdit(intr.ChannelID, intr.Message.ID)
+			msg.Content = &chartStr
+
+			_, err = s.ChannelMessageEditComplex(msg)
 			if err != nil {
-				log.Printf("Attemped to respond and failed: %v", err)
+				log.Printf("error editing message %s: %v", intr.Message.ID, err)
 			}
 		}
 	})
