@@ -1,2 +1,2 @@
 install:
-	go install -ldflags="-s -w"
+	go install -ldflags="-s -w" -trimpath

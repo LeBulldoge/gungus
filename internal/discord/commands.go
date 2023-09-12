@@ -104,7 +104,12 @@ var (
 				return
 			}
 
+			p.ID = msg.ID
 			polls[msg.ID] = p
+			err = storage.AddPoll(p)
+			if err != nil {
+				fmt.Printf("failed storing poll: %v", err)
+			}
 		},
 	}
 )

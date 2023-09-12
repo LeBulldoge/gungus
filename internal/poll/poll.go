@@ -7,7 +7,9 @@ import (
 )
 
 type Poll struct {
-	Title   string
+	ID      string `db:"id"`
+	Owner   string `db:"owner"`
+	Title   string `db:"title"`
 	Options map[string][]string
 }
 

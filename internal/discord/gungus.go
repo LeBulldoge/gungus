@@ -1,15 +1,19 @@
 package discord
 
 import (
-	"flag"
+	"context"
+	"fmt"
 	"log/slog"
 	"strings"
 
+	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/poll"
 	"github.com/bwmarrin/discordgo"
 )
 
 var polls = make(map[string]poll.Poll)
+
+var storage *database.DB
 
 type Bot *discordgo.Session
 
@@ -18,7 +22,11 @@ func NewBot(token string) (Bot, error) {
 }
 
 func OpenConnection(bot *discordgo.Session) error {
-	flag.Parse()
+	db, err := database.New(context.TODO())
+	if err != nil {
+		return fmt.Errorf("error while opening database: %w", err)
+	}
+	storage = db
 
 	bot.AddHandler(func(s *discordgo.Session, intr *discordgo.InteractionCreate) {
 		switch intr.Type {
@@ -35,17 +43,16 @@ func OpenConnection(bot *discordgo.Session) error {
 				return
 			}
 
-			p, ok := polls[intr.Message.ID]
-			if ok {
-				voteCustomID := intr.MessageComponentData().CustomID
-				err = p.CastVote(intr.Member.User.ID, voteCustomID)
-				if err != nil {
-					slog.Error("error casting vote for poll %s: %v", intr.Message.ID, err)
-					return
-				}
-			} else {
-				slog.Error("error getting poll for message ID %s", intr.Message.ID)
+			voteCustomID := intr.MessageComponentData().CustomID
+			err = storage.CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
+			if err != nil {
+				slog.Error("error casting vote for poll %s: %v", intr.Message.ID, err)
 				return
+			}
+
+			p, err := storage.GetPoll(intr.Message.ID)
+			if err != nil {
+				slog.Error("error getting poll", "id", intr.Message.ID, "err", err)
 			}
 
 			chartStr := poll.PlotBarChart(p.Title, p.GetVotes())
@@ -77,6 +84,8 @@ func CreateCommands(bot *discordgo.Session) error {
 }
 
 func Shutdown(bot *discordgo.Session) {
+	storage.Close()
+
 	slog.Info("Removing commands...")
 	registeredCommands, err := bot.ApplicationCommands(bot.State.User.ID, "")
 	if err != nil {
