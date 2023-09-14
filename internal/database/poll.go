@@ -17,38 +17,29 @@ func (m *Storage) GetPoll(ID string) (poll.Poll, error) {
 		}
 
 		p.Options = make(map[string][]string)
-		rows, err := tx.QueryContext(ctx, "SELECT name FROM PollOptions WHERE poll_id = ?", p.ID)
+		rows, err := tx.QueryContext(ctx, "SELECT id, name FROM PollOptions WHERE poll_id = ?", p.ID)
 		if err != nil {
 			return err
 		}
 
 		for rows.Next() {
+			var id string
 			var opt string
-			err = rows.Scan(&opt)
+			err = rows.Scan(&id, &opt)
 			if err != nil {
 				return fmt.Errorf("error while getting options: %w", err)
 			}
 
-			p.Options[opt] = []string{}
-		}
-
-		rows, err = tx.QueryContext(ctx, "SELECT PollOptions.name, Votes.voter_id FROM Polls JOIN PollOptions, Votes ON PollOptions.poll_id = Polls.id AND PollOptions.id = Votes.option_id WHERE Polls.id = ?", p.ID)
-		if err != nil {
-			return err
-		}
-
-		for rows.Next() {
-			var opt string
-			var voterID string
-			err = rows.Scan(&opt, &voterID)
+			voterIds := []string{}
+			err = tx.SelectContext(ctx, &voterIds, "SELECT Votes.voter_id FROM PollOptions JOIN Votes ON PollOptions.id = Votes.option_id WHERE PollOptions.id = ?", id)
 			if err != nil {
-				return fmt.Errorf("error while getting votes: %w", err)
+				return fmt.Errorf("error while collecting voter ids: %w", err)
 			}
 
-			p.Options[opt] = append(p.Options[opt], voterID)
+			p.Options[opt] = voterIds
 		}
 
-		return err
+		return nil
 	})
 
 	return p, err

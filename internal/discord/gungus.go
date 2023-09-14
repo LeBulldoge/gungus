@@ -53,7 +53,7 @@ func OpenConnection(bot *discordgo.Session) error {
 				slog.Error("error getting poll", "id", intr.Message.ID, "err", err)
 			}
 
-			chartStr := poll.PlotBarChart(p.Title, p.GetVotes())
+			chartStr := poll.PlotBarChart(p.Title, p.CountVotes())
 			msg := discordgo.NewMessageEdit(intr.ChannelID, intr.Message.ID)
 			msg.Content = &chartStr
 

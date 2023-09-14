@@ -20,14 +20,12 @@ func New(title string) Poll {
 	}
 }
 
-func (p *Poll) GetVotes() map[string]int {
+func (p *Poll) CountVotes() map[string]int {
 	res := make(map[string]int)
-	total := 0
 
 	for opt, votes := range p.Options {
 		cnt := len(votes)
 		res[opt] = cnt
-		total += cnt
 	}
 
 	return res

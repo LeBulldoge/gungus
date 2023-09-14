@@ -101,7 +101,7 @@ var (
 			err := s.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: poll.PlotBarChart(p.Title, p.GetVotes()),
+					Content: poll.PlotBarChart(p.Title, p.CountVotes()),
 					Components: []discordgo.MessageComponent{
 						discordgo.ActionsRow{
 							Components: pollButtons,
