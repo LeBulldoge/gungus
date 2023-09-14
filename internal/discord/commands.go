@@ -3,6 +3,7 @@ package discord
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/poll"
@@ -28,6 +29,17 @@ func buildPollCreateArgs() []*discordgo.ApplicationCommandOption {
 	}
 
 	return res
+}
+
+func interactonError(s *discordgo.Session, intr *discordgo.Interaction, content string) error {
+	slog.Error(content)
+	return s.InteractionRespond(intr, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: content,
+			Flags:   discordgo.MessageFlagsEphemeral,
+		},
+	})
 }
 
 var (
@@ -61,11 +73,15 @@ var (
 			pollButtons := []discordgo.MessageComponent{}
 			for i := 0; i < len(pollAnsText); i++ {
 				spl := strings.Split(pollAnsText[i], ";")
-				emojiStr, labelStr := spl[0], spl[1]
 				if len(spl) < 2 {
-					log.Printf("Formatting of option #%d failed: %s", i, pollAnsText[i])
+					err := interactonError(s, intr.Interaction, "Incorrect formatting for option %d. <emoji> ; <description>")
+					if err != nil {
+						slog.Error("error responding to interaction", "err", err)
+					}
 					return
 				}
+
+				emojiStr, labelStr := spl[0], spl[1]
 
 				emoji := emojiComponentFromString(emojiStr)
 				customID := fmt.Sprintf("%d_%s", i, strings.Trim(emojiStr, " "))
@@ -105,7 +121,6 @@ var (
 			}
 
 			p.ID = msg.ID
-			polls[msg.ID] = p
 			err = storage.AddPoll(p)
 			if err != nil {
 				fmt.Printf("failed storing poll: %v", err)

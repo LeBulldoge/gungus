@@ -11,8 +11,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var polls = make(map[string]poll.Poll)
-
 var storage *database.Storage
 
 type Bot *discordgo.Session
