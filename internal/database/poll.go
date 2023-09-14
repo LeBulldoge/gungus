@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/LeBulldoge/gungus/internal/poll"
-	"github.com/jmoiron/sqlx"
+	"github.com/LeBulldoge/sqlighter"
 )
 
-func (m *DB) GetPoll(ID string) (poll.Poll, error) {
+func (m *Storage) GetPoll(ID string) (poll.Poll, error) {
 	p := poll.Poll{}
-	err := tx(context.TODO(), m.db, func(ctx context.Context, tx *sqlx.Tx) error {
+	err := m.db.Tx(context.TODO(), func(ctx context.Context, tx *sqlighter.Tx) error {
 		err := tx.GetContext(ctx, &p, "SELECT * FROM Polls WHERE id = ?", ID)
 		if err != nil {
 			return fmt.Errorf("error while getting poll: %w", err)
@@ -54,8 +54,8 @@ func (m *DB) GetPoll(ID string) (poll.Poll, error) {
 	return p, err
 }
 
-func (m *DB) AddPoll(p poll.Poll) error {
-	err := tx(context.TODO(), m.db, func(ctx context.Context, tx *sqlx.Tx) error {
+func (m *Storage) AddPoll(p poll.Poll) error {
+	err := m.db.Tx(context.TODO(), func(ctx context.Context, tx *sqlighter.Tx) error {
 		_, err := tx.ExecContext(ctx, "INSERT INTO Polls (id, owner, title) VALUES (?, ?, ?)", p.ID, p.Owner, p.Title)
 		if err != nil {
 			return err
@@ -74,8 +74,8 @@ func (m *DB) AddPoll(p poll.Poll) error {
 	return err
 }
 
-func (m *DB) CastVote(pollID string, option string, voterID string) error {
-	err := tx(context.TODO(), m.db, func(ctx context.Context, tx *sqlx.Tx) error {
+func (m *Storage) CastVote(pollID string, option string, voterID string) error {
+	err := m.db.Tx(context.TODO(), func(ctx context.Context, tx *sqlighter.Tx) error {
 		var optionID string
 		err := tx.GetContext(ctx, &optionID, "SELECT id FROM PollOptions WHERE poll_id = ? AND name = ?", pollID, option)
 		if err != nil {

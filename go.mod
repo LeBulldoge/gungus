@@ -1,18 +1,18 @@
 module github.com/LeBulldoge/gungus
 
-go 1.20
+go 1.21.0
 
 require (
+	github.com/LeBulldoge/sqlighter v0.0.0-20230914014148-047035571aae
 	github.com/bwmarrin/discordgo v0.27.1
-	github.com/jmoiron/sqlx v1.3.5
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
-	modernc.org/sqlite v1.25.0
 )
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -27,6 +27,7 @@ require (
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.6.0 // indirect
 	modernc.org/opt v0.1.3 // indirect
+	modernc.org/sqlite v1.25.0 // indirect
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.0.1 // indirect
 )

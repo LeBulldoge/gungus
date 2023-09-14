@@ -2,85 +2,22 @@ package database
 
 import (
 	"context"
-	"errors"
-	"path/filepath"
 
-	"github.com/LeBulldoge/gungus/internal/database/schema"
-	"github.com/LeBulldoge/gungus/internal/os"
-	"github.com/jmoiron/sqlx"
-	_ "modernc.org/sqlite"
+	"github.com/LeBulldoge/sqlighter"
 )
 
-type DB struct {
-	db *sqlx.DB
+type Storage struct {
+	db *sqlighter.DB
 }
 
-func New(ctx context.Context) (*DB, error) {
-	config := os.ConfigPath()
-	dbPath := filepath.Join(config, "storage.db")
-
-	if !os.FileExists(dbPath) {
-		err := os.CreateFile(dbPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	db, err := sqlx.Open("sqlite", dbPath)
-	if err != nil {
-		return nil, err
-	}
-
-	db.SetMaxOpenConns(1)
-
-	err = tx(ctx, db, func(ctx context.Context, tx *sqlx.Tx) error {
-		curVersion, err := schema.CurrentVersion(ctx, tx)
-		if err != nil {
-			return err
-		}
-
-		needSchemaUpdate := curVersion != schema.TargetVersion
-
-		if needSchemaUpdate {
-			err := schema.ApplyMigrations(ctx, tx, curVersion, schema.TargetVersion)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	res := &DB{db: db}
-
-	return res, nil
+func New() *Storage {
+	return &Storage{sqlighter.New(targetVersion, versionMap)}
 }
 
-func (m *DB) Close() error {
-	_, err := m.db.Exec("PRAGMA optimize")
-	if err != nil {
-		return err
-	}
+func (m *Storage) Open(ctx context.Context) error {
+	return m.db.Open(ctx)
+}
 
+func (m *Storage) Close() error {
 	return m.db.Close()
-}
-
-func tx(ctx context.Context, db *sqlx.DB, f func(context.Context, *sqlx.Tx) error) error {
-	tx, err := db.BeginTxx(ctx, nil)
-
-	if err != nil {
-		return err
-	}
-
-	err = f(ctx, tx)
-	if err != nil {
-		e := tx.Rollback()
-		return errors.Join(err, e)
-	}
-
-	return tx.Commit()
 }

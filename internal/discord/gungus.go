@@ -13,7 +13,7 @@ import (
 
 var polls = make(map[string]poll.Poll)
 
-var storage *database.DB
+var storage *database.Storage
 
 type Bot *discordgo.Session
 
@@ -22,11 +22,11 @@ func NewBot(token string) (Bot, error) {
 }
 
 func OpenConnection(bot *discordgo.Session) error {
-	db, err := database.New(context.TODO())
+	storage = database.New()
+	err := storage.Open(context.TODO())
 	if err != nil {
 		return fmt.Errorf("error while opening database: %w", err)
 	}
-	storage = db
 
 	bot.AddHandler(func(s *discordgo.Session, intr *discordgo.InteractionCreate) {
 		switch intr.Type {

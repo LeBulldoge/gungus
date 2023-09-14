@@ -1,20 +1,19 @@
-package schema
+package database
 
 import (
-	"context"
-
-	"github.com/jmoiron/sqlx"
+	"github.com/LeBulldoge/sqlighter/schema"
 )
 
-var versionMap = map[int](func() migration){
-	1: version1,
+const targetVersion = 1
+
+var versionMap = schema.VersionMap{
+	1: schema.Version{
+		Up: version1Up,
+	},
 }
 
 // The initial schema
-func version1() migration {
-	up := func(ctx context.Context, tx *sqlx.Tx) error {
-
-		const schema = `CREATE TABLE Polls (
+const version1Up = `CREATE TABLE Polls (
   id     TEXT   NOT NULL PRIMARY KEY
                 UNIQUE,
   owner  TEXT   NOT NULL,
@@ -41,14 +40,3 @@ CREATE TABLE Votes (
                     REFERENCES PollOptions (id) ON DELETE CASCADE,
   voter_id  TEXT    NOT NULL
 );`
-
-		_, err := tx.ExecContext(ctx, schema)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	return migration{up: up}
-}
