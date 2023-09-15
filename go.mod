@@ -3,7 +3,7 @@ module github.com/LeBulldoge/gungus
 go 1.21.0
 
 require (
-	github.com/LeBulldoge/sqlighter v0.0.0-20230914014148-047035571aae
+	github.com/LeBulldoge/sqlighter v0.0.0-20230915230914-e398927cdde1
 	github.com/bwmarrin/discordgo v0.27.1
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 )

@@ -19,8 +19,8 @@ func NewBot(token string) (Bot, error) {
 	return discordgo.New("Bot " + token)
 }
 
-func OpenConnection(bot *discordgo.Session) error {
-	storage = database.New()
+func OpenConnection(bot *discordgo.Session, configDir string) error {
+	storage = database.New(configDir)
 	err := storage.Open(context.TODO())
 	if err != nil {
 		return fmt.Errorf("error while opening database: %w", err)
@@ -82,7 +82,10 @@ func CreateCommands(bot *discordgo.Session) error {
 }
 
 func Shutdown(bot *discordgo.Session) {
-	storage.Close()
+	err := storage.Close()
+	if err != nil {
+		slog.Error("failure closing database connection", "err", err)
+	}
 
 	slog.Info("Removing commands...")
 	registeredCommands, err := bot.ApplicationCommands(bot.State.User.ID, "")

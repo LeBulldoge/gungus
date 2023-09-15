@@ -46,7 +46,7 @@ func (m *Storage) GetPoll(ID string) (poll.Poll, error) {
 }
 
 func (m *Storage) AddPoll(p poll.Poll) error {
-	err := m.db.Tx(context.TODO(), func(ctx context.Context, tx *sqlighter.Tx) error {
+	return m.db.Tx(context.TODO(), func(ctx context.Context, tx *sqlighter.Tx) error {
 		_, err := tx.ExecContext(ctx, "INSERT INTO Polls (id, owner, title) VALUES (?, ?, ?)", p.ID, p.Owner, p.Title)
 		if err != nil {
 			return err
@@ -61,12 +61,10 @@ func (m *Storage) AddPoll(p poll.Poll) error {
 
 		return err
 	})
-
-	return err
 }
 
 func (m *Storage) CastVote(pollID string, option string, voterID string) error {
-	err := m.db.Tx(context.TODO(), func(ctx context.Context, tx *sqlighter.Tx) error {
+	return m.db.Tx(context.TODO(), func(ctx context.Context, tx *sqlighter.Tx) error {
 		var optionID string
 		err := tx.GetContext(ctx, &optionID, "SELECT id FROM PollOptions WHERE poll_id = ? AND name = ?", pollID, option)
 		if err != nil {
@@ -85,6 +83,4 @@ func (m *Storage) CastVote(pollID string, option string, voterID string) error {
 
 		return err
 	})
-
-	return err
 }

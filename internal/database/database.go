@@ -10,8 +10,8 @@ type Storage struct {
 	db *sqlighter.DB
 }
 
-func New() *Storage {
-	return &Storage{sqlighter.New(targetVersion, versionMap)}
+func New(configDir string) *Storage {
+	return &Storage{sqlighter.New(configDir, targetVersion, versionMap)}
 }
 
 func (m *Storage) Open(ctx context.Context) error {

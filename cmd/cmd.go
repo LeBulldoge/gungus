@@ -11,18 +11,21 @@ import (
 
 // flags
 var (
-	botToken = flag.String("token", "", "Bot token")
+	configDir = flag.String("config", "", "Config directory")
+	botToken  = flag.String("token", "", "Bot token")
 )
 
 func Run() {
 	flag.Parse()
+
+	slog.Info("starting bot", "token", *botToken)
 
 	bot, err := discord.NewBot(*botToken)
 	if err != nil {
 		slog.Error("error while creating session: %v", err)
 	}
 
-	err = discord.OpenConnection(bot)
+	err = discord.OpenConnection(bot, *configDir)
 	if err != nil {
 		slog.Error("error while opening session: %v", err)
 		return
