@@ -1,8 +1,6 @@
 package discord
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -11,26 +9,22 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var storage *database.Storage
-
-type Bot *discordgo.Session
-
-func NewBot(token string) (Bot, error) {
-	return discordgo.New("Bot " + token)
+type Bot struct {
+	session *discordgo.Session
+	storage *database.Storage
 }
 
-func OpenConnection(bot *discordgo.Session, configDir string) error {
-	storage = database.New(configDir)
-	err := storage.Open(context.TODO())
-	if err != nil {
-		return fmt.Errorf("error while opening database: %w", err)
-	}
+func NewBot(token string, storage *database.Storage) (*Bot, error) {
+	s, err := discordgo.New("Bot " + token)
+	return &Bot{session: s, storage: storage}, err
+}
 
-	bot.AddHandler(func(s *discordgo.Session, intr *discordgo.InteractionCreate) {
+func (bot *Bot) OpenConnection() error {
+	bot.session.AddHandler(func(s *discordgo.Session, intr *discordgo.InteractionCreate) {
 		switch intr.Type {
 		case discordgo.InteractionApplicationCommand:
 			if h, ok := commandHandlers[intr.ApplicationCommandData().Name]; ok {
-				h(s, intr)
+				h(bot, intr)
 			}
 		case discordgo.InteractionMessageComponent:
 			err := s.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
@@ -42,13 +36,13 @@ func OpenConnection(bot *discordgo.Session, configDir string) error {
 			}
 
 			voteCustomID := intr.MessageComponentData().CustomID
-			err = storage.CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
+			err = bot.storage.CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
 			if err != nil {
 				slog.Error("error casting vote", "id", intr.Message.ID, "err", err)
 				return
 			}
 
-			p, err := storage.GetPoll(intr.Message.ID)
+			p, err := bot.storage.GetPoll(intr.Message.ID)
 			if err != nil {
 				slog.Error("error getting poll", "id", intr.Message.ID, "err", err)
 			}
@@ -64,12 +58,12 @@ func OpenConnection(bot *discordgo.Session, configDir string) error {
 		}
 	})
 
-	return bot.Open()
+	return bot.session.Open()
 }
 
-func CreateCommands(bot *discordgo.Session) error {
+func (bot *Bot) CreateCommands() error {
 	for _, v := range commands {
-		_, err := bot.ApplicationCommandCreate(bot.State.User.ID, "", v)
+		_, err := bot.session.ApplicationCommandCreate(bot.session.State.User.ID, "", v)
 		if err != nil {
 			slog.Error("error while creating command", "cmd", v.Name, "err", err)
 			return err
@@ -81,26 +75,26 @@ func CreateCommands(bot *discordgo.Session) error {
 	return nil
 }
 
-func Shutdown(bot *discordgo.Session) {
-	err := storage.Close()
+func (bot *Bot) Shutdown() {
+	err := bot.storage.Close()
 	if err != nil {
 		slog.Error("failure closing database connection", "err", err)
 	}
 
 	slog.Info("Removing commands...")
-	registeredCommands, err := bot.ApplicationCommands(bot.State.User.ID, "")
+	registeredCommands, err := bot.session.ApplicationCommands(bot.session.State.User.ID, "")
 	if err != nil {
 		slog.Error("could not fetch registered commands", "err", err)
 	}
 
 	for _, v := range registeredCommands {
-		err := bot.ApplicationCommandDelete(bot.State.User.ID, "", v.ID)
+		err := bot.session.ApplicationCommandDelete(bot.session.State.User.ID, "", v.ID)
 		if err != nil {
 			slog.Error("cannot delete command", "cmd", v.Name, "err", err)
 		}
 	}
 
-	slog.Info("Gracefully shutting down.")
+	slog.Info("gracefully shutting down.")
 }
 
 func isCustomEmoji(s string) bool {

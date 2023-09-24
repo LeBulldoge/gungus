@@ -57,8 +57,8 @@ var (
 			},
 		},
 	}
-	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"poll": func(s *discordgo.Session, intr *discordgo.InteractionCreate) {
+	commandHandlers = map[string]func(bot *Bot, i *discordgo.InteractionCreate){
+		"poll": func(bot *Bot, intr *discordgo.InteractionCreate) {
 			opt := intr.ApplicationCommandData().Options[0]
 
 			var pollAnsText []string
@@ -74,7 +74,7 @@ var (
 			for i := 0; i < len(pollAnsText); i++ {
 				spl := strings.Split(pollAnsText[i], ";")
 				if len(spl) < 2 {
-					err := displayInteractionError(s, intr.Interaction, "Incorrect formatting for option %d. <emoji> ; <description>")
+					err := displayInteractionError(bot.session, intr.Interaction, "Incorrect formatting for option %d. <emoji> ; <description>")
 					if err != nil {
 						slog.Error("error responding to interaction", "err", err)
 					}
@@ -98,7 +98,7 @@ var (
 				pollButtons = append(pollButtons, btn)
 			}
 
-			err := s.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+			err := bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Content: poll.PlotBarChart(p.Title, p.CountVotes()),
@@ -114,14 +114,14 @@ var (
 				return
 			}
 
-			msg, err := s.InteractionResponse(intr.Interaction)
+			msg, err := bot.session.InteractionResponse(intr.Interaction)
 			if err != nil {
 				log.Printf("error collecting response for interaction %s: %v", intr.ID, err)
 				return
 			}
 
 			p.ID = msg.ID
-			err = storage.AddPoll(p)
+			err = bot.storage.AddPoll(p)
 			if err != nil {
 				fmt.Printf("failed storing poll: %v", err)
 			}

@@ -1,11 +1,13 @@
 package gungus
 
 import (
+	"context"
 	"flag"
 	"log/slog"
 	"os"
 	"os/signal"
 
+	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord"
 )
 
@@ -18,27 +20,33 @@ var (
 func Run() {
 	flag.Parse()
 
-	slog.Info("starting bot", "token", *botToken)
+	slog.Info("starting bot...")
 
-	bot, err := discord.NewBot(*botToken)
+	storage := database.New(*configDir)
+	err := storage.Open(context.TODO())
+	if err != nil {
+		slog.Error("error while opening database", "err", err)
+	}
+
+	bot, err := discord.NewBot(*botToken, storage)
 	if err != nil {
 		slog.Error("error while creating session: %v", err)
 	}
 
-	err = discord.OpenConnection(bot, *configDir)
+	err = bot.OpenConnection()
 	if err != nil {
 		slog.Error("error while opening session: %v", err)
 		return
 	}
 
-	err = discord.CreateCommands(bot)
+	err = bot.CreateCommands()
 	if err != nil {
 		slog.Error("error while creating commands: %v", err)
-		discord.Shutdown(bot)
+		bot.Shutdown()
 		return
 	}
 
-	defer discord.Shutdown(bot)
+	defer bot.Shutdown()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
