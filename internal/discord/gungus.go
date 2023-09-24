@@ -37,14 +37,14 @@ func OpenConnection(bot *discordgo.Session, configDir string) error {
 				Type: discordgo.InteractionResponseDeferredMessageUpdate,
 			})
 			if err != nil {
-				slog.Error("error creating deferred response: %v", err)
+				slog.Error("error creating deferred response", "err", err)
 				return
 			}
 
 			voteCustomID := intr.MessageComponentData().CustomID
 			err = storage.CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
 			if err != nil {
-				slog.Error("error casting vote for poll %s: %v", intr.Message.ID, err)
+				slog.Error("error casting vote", "id", intr.Message.ID, "err", err)
 				return
 			}
 
@@ -59,7 +59,7 @@ func OpenConnection(bot *discordgo.Session, configDir string) error {
 
 			_, err = s.ChannelMessageEditComplex(msg)
 			if err != nil {
-				slog.Error("error editing message %s: %v", intr.Message.ID, err)
+				slog.Error("error editing message", "id", intr.Message.ID, "err", err)
 			}
 		}
 	})

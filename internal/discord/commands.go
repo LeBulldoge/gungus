@@ -31,7 +31,7 @@ func buildPollCreateArgs() []*discordgo.ApplicationCommandOption {
 	return res
 }
 
-func interactonError(s *discordgo.Session, intr *discordgo.Interaction, content string) error {
+func displayInteractionError(s *discordgo.Session, intr *discordgo.Interaction, content string) error {
 	slog.Error(content)
 	return s.InteractionRespond(intr, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -74,7 +74,7 @@ var (
 			for i := 0; i < len(pollAnsText); i++ {
 				spl := strings.Split(pollAnsText[i], ";")
 				if len(spl) < 2 {
-					err := interactonError(s, intr.Interaction, "Incorrect formatting for option %d. <emoji> ; <description>")
+					err := displayInteractionError(s, intr.Interaction, "Incorrect formatting for option %d. <emoji> ; <description>")
 					if err != nil {
 						slog.Error("error responding to interaction", "err", err)
 					}
