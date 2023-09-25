@@ -2,7 +2,6 @@ package discord
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 
@@ -31,15 +30,18 @@ func buildPollCreateArgs() []*discordgo.ApplicationCommandOption {
 	return res
 }
 
-func displayInteractionError(s *discordgo.Session, intr *discordgo.Interaction, content string) error {
+func displayInteractionError(s *discordgo.Session, intr *discordgo.Interaction, content string) {
 	slog.Error(content)
-	return s.InteractionRespond(intr, &discordgo.InteractionResponse{
+	err := s.InteractionRespond(intr, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: content,
 			Flags:   discordgo.MessageFlagsEphemeral,
 		},
 	})
+	if err != nil {
+		slog.Error("failed displaying error", "err", err)
+	}
 }
 
 var (
@@ -74,10 +76,7 @@ var (
 			for i := 0; i < len(pollAnsText); i++ {
 				spl := strings.Split(pollAnsText[i], ";")
 				if len(spl) < 2 {
-					err := displayInteractionError(bot.session, intr.Interaction, "Incorrect formatting for option %d. <emoji> ; <description>")
-					if err != nil {
-						slog.Error("error responding to interaction", "err", err)
-					}
+					displayInteractionError(bot.session, intr.Interaction, "Incorrect formatting for option %d. <emoji> ; <description>")
 					return
 				}
 
@@ -110,20 +109,20 @@ var (
 				},
 			})
 			if err != nil {
-				log.Printf("error responding to interaction ID %s: %v", intr.ID, err)
+				slog.Error("error responding to interaction", intr.ID, err)
 				return
 			}
 
 			msg, err := bot.session.InteractionResponse(intr.Interaction)
 			if err != nil {
-				log.Printf("error collecting response for interaction %s: %v", intr.ID, err)
+				slog.Error("error collecting response for interaction", intr.ID, err)
 				return
 			}
 
 			p.ID = msg.ID
 			err = bot.storage.AddPoll(p)
 			if err != nil {
-				fmt.Printf("failed storing poll: %v", err)
+				slog.Error("failed storing poll", "err", err)
 			}
 		},
 	}
