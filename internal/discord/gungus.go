@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/database"
-	"github.com/LeBulldoge/gungus/internal/poll"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -19,44 +18,23 @@ func NewBot(token string, storage *database.Storage) (*Bot, error) {
 	return &Bot{session: s, storage: storage}, err
 }
 
-func (bot *Bot) OpenConnection() error {
-	bot.session.AddHandler(func(s *discordgo.Session, intr *discordgo.InteractionCreate) {
+func (bot *Bot) addHandlers() {
+	bot.session.AddHandler(func(_ *discordgo.Session, intr *discordgo.InteractionCreate) {
 		switch intr.Type {
 		case discordgo.InteractionApplicationCommand:
 			if h, ok := commandHandlers[intr.ApplicationCommandData().Name]; ok {
 				h(bot, intr)
 			}
 		case discordgo.InteractionMessageComponent:
-			err := s.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseDeferredMessageUpdate,
-			})
-			if err != nil {
-				slog.Error("error creating deferred response", "err", err)
-				return
-			}
-
-			voteCustomID := intr.MessageComponentData().CustomID
-			err = bot.storage.CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
-			if err != nil {
-				slog.Error("error casting vote", "id", intr.Message.ID, "err", err)
-				return
-			}
-
-			p, err := bot.storage.GetPoll(intr.Message.ID)
-			if err != nil {
-				slog.Error("error getting poll", "id", intr.Message.ID, "err", err)
-			}
-
-			chartStr := poll.PlotBarChart(p.Title, p.CountVotes())
-			msg := discordgo.NewMessageEdit(intr.ChannelID, intr.Message.ID)
-			msg.Content = &chartStr
-
-			_, err = s.ChannelMessageEditComplex(msg)
-			if err != nil {
-				slog.Error("error editing message", "id", intr.Message.ID, "err", err)
+			if strings.HasPrefix(intr.MessageComponentData().CustomID, "option") {
+				handleVote(bot, intr)
 			}
 		}
 	})
+}
+
+func (bot *Bot) OpenConnection() error {
+	bot.addHandlers()
 
 	return bot.session.Open()
 }
