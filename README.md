@@ -12,5 +12,9 @@ $ gungus -token <your discord app token>
 $ docker run -v <path to storage directory>:/config ghcr.io/lebulldoge/gungus -token <your discord app token>
 ```
 ### Current functionality:
-* Starting polls
-* ...
+* User polling
+
+Command `/poll start` generates a poll with up to 6 options, 2 of which are required:
+
+`/poll start title: Favorite Chip option_0: 🔥;Sweet Chili Heat Doritos option_1: 🧀;Chili Cheese Fritos option_2: 🧂;Salt & Vinegar Pringles`
+![starting poll](https://github.com/LeBulldoge/gungus/assets/13983982/1cc215a4-b501-4746-9fd9-70deb1583d0b)
