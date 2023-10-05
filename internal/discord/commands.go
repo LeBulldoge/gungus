@@ -56,8 +56,46 @@ var (
 				},
 			},
 		},
+		{
+			Name:        "quote",
+			Description: "Interact with polls",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "add",
+					Description: "Save a quote",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "by_user",
+							Description: "User attribution",
+							Type:        discordgo.ApplicationCommandOptionUser,
+							Required:    true,
+						},
+						{
+							Name:        "text",
+							Description: "Quote text",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
+						},
+					},
+				},
+				{
+					Name:        "random",
+					Description: "Get a random quote by a particular user",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "by_user",
+							Description: "User to get a quote from",
+							Type:        discordgo.ApplicationCommandOptionUser,
+						},
+					},
+				},
+			},
+		},
 	}
 	commandHandlers = map[string]func(bot *Bot, i *discordgo.InteractionCreate){
-		"poll": handlePoll,
+		"poll":  handlePoll,
+		"quote": handleQuote,
 	}
 )

@@ -21,3 +21,7 @@ func (m *Storage) Open(ctx context.Context) error {
 func (m *Storage) Close() error {
 	return m.db.Close()
 }
+
+func (m *Storage) Tx(ctx context.Context, f func(context.Context, *sqlighter.Tx) error) error {
+	return m.db.Tx(ctx, f)
+}
