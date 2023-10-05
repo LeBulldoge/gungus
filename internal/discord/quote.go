@@ -84,10 +84,12 @@ func randomQuote(bot *Bot, intr *discordgo.InteractionCreate) {
 		}
 	}
 
+	const MessageFlagsSilent = 1 << 12
 	err = bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Here is a random quote!\n\n%s: %s\n> %s\n\n", byUser.Mention(), quotes[ind].Date.UTC().Format(time.RFC822), quotes[ind].Text),
+			Flags:   MessageFlagsSilent,
 		},
 	})
 	if err != nil {
