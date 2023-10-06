@@ -1,5 +1,3 @@
-github.com/LeBulldoge/sqlighter v0.0.0-20230914014148-047035571aae h1:ThI5iFjv9WFoTScxCsK15bKF9ldQrvcFTbJ8kBBd1FA=
-github.com/LeBulldoge/sqlighter v0.0.0-20230914014148-047035571aae/go.mod h1:/GZ7OXS3H0goFVdX3m4pGWZzolkDFNnR4iRnvaa2cks=
 github.com/LeBulldoge/sqlighter v0.0.0-20230915230914-e398927cdde1 h1:mXZ9Bz8ZY5XyRINytrou7GMeTf+Gi+VcTc94AEElNJU=
 github.com/LeBulldoge/sqlighter v0.0.0-20230915230914-e398927cdde1/go.mod h1:/GZ7OXS3H0goFVdX3m4pGWZzolkDFNnR4iRnvaa2cks=
 github.com/bwmarrin/discordgo v0.27.1 h1:ib9AIc/dom1E/fSIulrBwnez0CToJE113ZGt4HoliGY=
