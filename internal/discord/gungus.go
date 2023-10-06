@@ -26,7 +26,7 @@ func (bot *Bot) addHandlers() {
 				h(bot, intr)
 			}
 		case discordgo.InteractionMessageComponent:
-			if strings.Contains(intr.MessageComponentData().CustomID, "option") {
+			if strings.HasSuffix(intr.MessageComponentData().CustomID, ":") {
 				handleVote(bot, intr)
 			}
 			slog.Error("unsupported component type", "id", intr.MessageComponentData().CustomID)
