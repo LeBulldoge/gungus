@@ -32,7 +32,7 @@ func handlePoll(bot *Bot, intr *discordgo.InteractionCreate) {
 		emojiStr, labelStr := spl[0], spl[1]
 
 		emoji := emojiComponentFromString(emojiStr)
-		customID := fmt.Sprintf("%d_%s", i, strings.Trim(emojiStr, " "))
+		customID := fmt.Sprintf("option_%d_%s", i, strings.Trim(emojiStr, " "))
 
 		btn := discordgo.Button{
 			CustomID: customID,

@@ -26,10 +26,11 @@ func (bot *Bot) addHandlers() {
 				h(bot, intr)
 			}
 		case discordgo.InteractionMessageComponent:
-			if strings.HasSuffix(intr.MessageComponentData().CustomID, ":") {
+			if strings.HasPrefix(intr.MessageComponentData().CustomID, "option") {
 				handleVote(bot, intr)
+			} else {
+				slog.Error("unsupported component type", "id", intr.MessageComponentData().CustomID)
 			}
-			slog.Error("unsupported component type", "id", intr.MessageComponentData().CustomID)
 		default:
 			slog.Error("unsupported interaction", "intr", intr)
 		}

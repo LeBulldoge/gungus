@@ -25,7 +25,7 @@ func PlotBarChart(title string, values map[string]int) string {
 
 	sort.Strings(labels)
 	for _, s := range labels {
-		label := strings.Split(s, "_")[1]
+		label := strings.Split(s, "_")[2]
 		value := values[s]
 
 		sb.WriteString(label + " ")

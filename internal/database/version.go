@@ -4,9 +4,12 @@ import (
 	"github.com/LeBulldoge/sqlighter/schema"
 )
 
-const targetVersion = 2
+const targetVersion = 3
 
 var versionMap = schema.VersionMap{
+	3: schema.Version{
+		Up: version3Up,
+	},
 	2: schema.Version{
 		Up: version2Up,
 	},
@@ -14,6 +17,10 @@ var versionMap = schema.VersionMap{
 		Up: version1Up,
 	},
 }
+
+const version3Up = `
+  UPDATE PollOptions SET name = "option_" || name
+`
 
 const version2Up = `CREATE TABLE Quotes (
   user TEXT     NOT NULL,
