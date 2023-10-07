@@ -75,20 +75,22 @@ func randomQuote(bot *Bot, intr *discordgo.InteractionCreate) {
 		ind = rand.Intn(len(quotes)) - 1
 	}
 
-	q := quotes[ind]
+	selectedQuote := quotes[ind]
 	if byUser == nil {
-		byUser, err = bot.session.User(q.User)
+		byUser, err = bot.session.User(selectedQuote.User)
 		if err != nil {
-			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure aquiring user data for user id: %s", q.User))
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure aquiring user data for user id: %s", selectedQuote.User))
 			return
 		}
 	}
+	mention := byUser.Mention()
+	dateStamp := timeToTimestamp(selectedQuote.Date.UTC())
 
 	const MessageFlagsSilent = 1 << 12
 	err = bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("Here is a random quote!\n\n%s: %s\n> %s\n\n", byUser.Mention(), quotes[ind].Date.UTC().Format(time.RFC822), quotes[ind].Text),
+			Content: fmt.Sprintf("Here is a random quote!\n\n%s: %s\n> %s\n\n", mention, dateStamp, selectedQuote.Text),
 			Flags:   MessageFlagsSilent,
 		},
 	})
