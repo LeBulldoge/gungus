@@ -66,13 +66,13 @@ func randomQuote(bot *Bot, intr *discordgo.InteractionCreate) {
 	}
 
 	if len(quotes) == 0 {
-		displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("no quotes found for %s", byUser.Mention()))
+		displayInteractionError(bot.session, intr.Interaction, "no quotes found")
 		return
 	}
 
 	ind := 0
 	if len(quotes) > 1 {
-		ind = rand.Intn(len(quotes)) - 1
+		ind = rand.Intn(len(quotes))
 	}
 
 	selectedQuote := quotes[ind]
