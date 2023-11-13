@@ -2,6 +2,7 @@ package movienight
 
 import (
 	"log/slog"
+	"strings"
 	"sync"
 
 	"github.com/gocolly/colly"
@@ -46,7 +47,8 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	var resErr error
 	c.OnHTML("li.find-title-result", func(h *colly.HTMLElement) {
 		movie := MovieSearchResult{}
-		movie.ID = SOURCE + h.ChildAttr("a", "href")
+		movie.ID = h.ChildAttr("a", "href")
+		movie.ID = strings.Split(movie.ID, "/")[2] // /title/[tt000000]/?ref_=fn_tt_tt_1
 		movie.Title = h.ChildText("a")
 		res = append(res, movie)
 	})

@@ -7,7 +7,7 @@ import (
 func TestSearchMovie(t *testing.T) {
 	query := "alien"
 	want := MovieSearchResult{
-		ID:    "/title/tt0078748/?ref_=fn_tt_tt_1",
+		ID:    "tt0078748",
 		Title: "Alien",
 	}
 
