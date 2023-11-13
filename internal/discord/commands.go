@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	movienight "github.com/LeBulldoge/gungus/internal/movie_night"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -47,6 +48,7 @@ var (
 		{
 			Name:        "poll",
 			Description: "Interact with polls",
+			Type:        discordgo.ChatApplicationCommand,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Name:        "start",
@@ -93,8 +95,73 @@ var (
 				},
 			},
 		},
+		{
+			Name:        "movie",
+			Description: "Interact with movies",
+			Type:        discordgo.ChatApplicationCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "add",
+					Description: "Add a movie to the list",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:         "title",
+							Description:  "Title of the movie",
+							Type:         discordgo.ApplicationCommandOptionString,
+							Required:     true,
+							Autocomplete: true,
+						},
+					},
+				},
+			},
+		},
 	}
 	commandHandlers = map[string]func(bot *Bot, i *discordgo.InteractionCreate){
+		"movie": func(bot *Bot, intr *discordgo.InteractionCreate) {
+			opt := intr.ApplicationCommandData().Options[0]
+
+			switch intr.Type {
+			case discordgo.InteractionApplicationCommand:
+				err := bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "You selected " + opt.Options[0].StringValue(),
+					},
+				})
+
+				if err != nil {
+					slog.Error("error responding to request", "err", err)
+				}
+			case discordgo.InteractionApplicationCommandAutocomplete:
+				opt := intr.ApplicationCommandData().Options[0]
+
+				movies, err := movienight.SearchMovies(opt.Options[0].StringValue())
+				if err != nil {
+					displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("error searching movies: %v", err))
+					return
+				}
+
+				choices := []*discordgo.ApplicationCommandOptionChoice{}
+				for _, movie := range movies {
+					choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
+						Name:  movie.Title,
+						Value: movie.ID,
+					})
+				}
+
+				err = bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+					Data: &discordgo.InteractionResponseData{
+						Choices: choices,
+					},
+				})
+
+				if err != nil {
+					slog.Error("error responding to request", "err", err)
+				}
+			}
+		},
 		"poll":  handlePoll,
 		"quote": handleQuote,
 	}

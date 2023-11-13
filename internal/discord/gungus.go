@@ -22,6 +22,8 @@ func (bot *Bot) addHandlers() {
 	bot.session.AddHandler(func(_ *discordgo.Session, intr *discordgo.InteractionCreate) {
 		switch intr.Type {
 		case discordgo.InteractionApplicationCommand:
+			fallthrough
+		case discordgo.InteractionApplicationCommandAutocomplete:
 			if h, ok := commandHandlers[intr.ApplicationCommandData().Name]; ok {
 				h(bot, intr)
 			}
