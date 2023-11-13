@@ -9,8 +9,10 @@ import (
 
 /*
 Movie Night
-* Ratings
+* Movie List
+* Ratings (mandatory blurb)
 * Ability to tag yourself as a character
+* Did they say the name of the movie
 */
 
 type MovieSearchResult struct {
