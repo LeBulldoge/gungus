@@ -44,7 +44,7 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	var resErr error
 	c.OnHTML("li.find-title-result", func(h *colly.HTMLElement) {
 		movie := MovieSearchResult{}
-		movie.ID = h.ChildAttr("a", "href")
+		movie.ID = SOURCE + h.ChildAttr("a", "href")
 		movie.Title = h.ChildText("a")
 		res = append(res, movie)
 	})
