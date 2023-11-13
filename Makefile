@@ -19,3 +19,8 @@ gungus.darwin.arm64:
 
 install:
 	go install -ldflags="-s -w" -trimpath
+
+publish:
+	podman build --platform=linux/arm64,linux/amd64 --manifest ghcr.io/lebulldoge/gungus:beta -f builder.Dockerfile
+	podman manifest push ghcr.io/lebulldoge/gungus:beta
+	podman manifest rm ghcr.io/lebulldoge/gungus:beta
