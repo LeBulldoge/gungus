@@ -30,6 +30,15 @@ const version4Up = `CREATE TABLE Movies (
     addedBy     TEXT     NOT NULL,
     watchedOn   DATETIME NOT NULL
 );
+
+CREATE TABLE MovieRatings (
+    movieId     TEXT     NOT NULL,
+    userId      TEXT     NOT NULL,
+    rating      NUMBER   NOT NULL,
+    PRIMARY KEY(movieId, userId),
+    UNIQUE(movieId, userId)
+);
+
 `
 
 const version3Up = `

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"sync"
 
 	"github.com/LeBulldoge/sqlighter"
 )
@@ -9,6 +10,8 @@ import (
 type Storage struct {
 	db *sqlighter.DB
 }
+
+var storageMutex sync.Mutex
 
 func New(configDir string) *Storage {
 	return &Storage{sqlighter.New(configDir, targetVersion, versionMap)}
@@ -23,5 +26,9 @@ func (m *Storage) Close() error {
 }
 
 func (m *Storage) Tx(ctx context.Context, f func(context.Context, *sqlighter.Tx) error) error {
-	return m.db.Tx(ctx, f)
+	return m.db.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
+		storageMutex.Lock()
+		defer storageMutex.Unlock()
+		return f(ctx, tx)
+	})
 }

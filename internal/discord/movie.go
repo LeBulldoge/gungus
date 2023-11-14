@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -17,10 +18,11 @@ func addMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 
 	switch intr.Type {
 	case discordgo.InteractionApplicationCommand:
+		movieID := opt.Options[0].StringValue()
 		err := movienight.AddMovie(
 			context.TODO(),
 			bot.storage,
-			opt.Options[0].StringValue(),
+			movieID,
 			intr.Member.User.ID,
 			time.Now(),
 		)
@@ -30,12 +32,13 @@ func addMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 			return
 		}
 
-		err = bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Movie added!",
-			},
-		})
+		response, err := buildMovieResponse(bot, intr, movieID)
+		if err != nil {
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure displaying movie: %v", err))
+		}
+		response.Data.Content = "New movie added!"
+
+		err = bot.session.InteractionRespond(intr.Interaction, response)
 		if err != nil {
 			slog.Error("error responding to request", "err", err)
 		}
@@ -69,7 +72,37 @@ func addMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 	}
 }
 
-func embedFromMovie(user *discordgo.User, movie movienight.Movie) *discordgo.MessageEmbed {
+func getMemberDisplayName(member *discordgo.Member) string {
+	var displayName string
+	if len(member.Nick) > 0 {
+		displayName = member.Nick
+	} else if len(member.User.Token) > 0 {
+		displayName = member.User.Token
+	} else {
+		displayName = member.User.Username
+	}
+	return displayName
+}
+
+func embedFromMovie(bot *Bot, guildId string, movie movienight.Movie) (*discordgo.MessageEmbed, error) {
+	user, err := bot.session.GuildMember(guildId, movie.AddedBy)
+	if err != nil {
+		return nil, err
+	}
+
+	fields := []*discordgo.MessageEmbedField{}
+	for _, rating := range movie.Ratings {
+		user, err := bot.session.GuildMember(guildId, rating.UserID)
+		if err != nil {
+			return nil, err
+		}
+		fields = append(fields, &discordgo.MessageEmbedField{
+			Name:   "Rating by " + getMemberDisplayName(user),
+			Value:  strconv.FormatFloat(rating.Rating, 'f', 2, 64),
+			Inline: true,
+		})
+	}
+
 	return &discordgo.MessageEmbed{
 		Title:       movie.Title,
 		URL:         movie.GetURL(),
@@ -78,10 +111,11 @@ func embedFromMovie(user *discordgo.User, movie movienight.Movie) *discordgo.Mes
 			URL: movie.Image,
 		},
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Added by " + user.String(),
+			Text: "Added by " + getMemberDisplayName(user),
 		},
 		Timestamp: movie.WatchedOn.Format(time.RFC3339),
-	}
+		Fields:    fields,
+	}, nil
 }
 
 func movieList(bot *Bot, intr *discordgo.InteractionCreate) {
@@ -92,13 +126,12 @@ func movieList(bot *Bot, intr *discordgo.InteractionCreate) {
 	}
 
 	movie := movies[0]
-	user, err := bot.session.User(movie.AddedBy)
+	embed, err := embedFromMovie(bot, intr.GuildID, movie)
 	if err != nil {
-		displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("error retrieving user: %v", err))
+		displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("error creating embed for movie: %v", err))
 		return
 	}
 
-	embed := embedFromMovie(user, movie)
 	embed.Author = &discordgo.MessageEmbedAuthor{
 		Name: "0",
 	}
@@ -187,13 +220,11 @@ func movieListPaginate(bot *Bot, intr *discordgo.InteractionCreate) {
 	}
 
 	movie := movies[index]
-	user, err := bot.session.User(movie.AddedBy)
+	embed, err := embedFromMovie(bot, intr.GuildID, movie)
 	if err != nil {
-		displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("error retrieving user: %v", err))
+		displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("error creating embed for movie: %v", err))
 		return
 	}
-
-	embed := embedFromMovie(user, movie)
 	embed.Author = &discordgo.MessageEmbedAuthor{
 		Name: strconv.Itoa(index),
 	}
@@ -205,6 +236,83 @@ func movieListPaginate(bot *Bot, intr *discordgo.InteractionCreate) {
 	}
 }
 
+func buildMovieResponse(bot *Bot, intr *discordgo.InteractionCreate, movieID string) (*discordgo.InteractionResponse, error) {
+	movie, err := movienight.GetMovie(context.TODO(), bot.storage, movieID)
+	if err != nil {
+		return nil, fmt.Errorf("failure getting a movie: %w", err)
+	}
+
+	embed, err := embedFromMovie(bot, intr.GuildID, movie)
+	if err != nil {
+		return nil, fmt.Errorf("failure building an embed: %w", err)
+	}
+
+	return &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{embed},
+		},
+	}, nil
+}
+
+func rateMovie(bot *Bot, intr *discordgo.InteractionCreate) {
+	opt := intr.ApplicationCommandData().Options[0]
+
+	switch intr.Type {
+	case discordgo.InteractionApplicationCommand:
+		movieID := opt.Options[0].StringValue()
+		rating := opt.Options[1].FloatValue()
+		if math.Abs(rating) > 10.0 {
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("incorrect rating value: %v", rating))
+			return
+		}
+
+		err := movienight.RateMovie(context.TODO(), bot.storage, movieID, intr.Member.User.ID, rating)
+		if err != nil {
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure rating a movie: %v", err))
+			return
+		}
+
+		response, err := buildMovieResponse(bot, intr, movieID)
+		if err != nil {
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure displaying movie: %v", err))
+		}
+		response.Data.Flags = discordgo.MessageFlagsEphemeral
+		response.Data.Content = "Movie rated!"
+
+		err = bot.session.InteractionRespond(intr.Interaction, response)
+		if err != nil {
+			slog.Error("error responding to request", "err", err)
+		}
+	case discordgo.InteractionApplicationCommandAutocomplete:
+		title := opt.Options[0].StringValue()
+		movies, err := movienight.GetMoviesByTitle(context.TODO(), bot.storage, title)
+		if err != nil {
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("error getting movies: %v", err))
+			return
+		}
+
+		choices := []*discordgo.ApplicationCommandOptionChoice{}
+		for _, movie := range movies {
+			choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
+				Name:  movie.Title,
+				Value: movie.ID,
+			})
+		}
+
+		err = bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+			Data: &discordgo.InteractionResponseData{
+				Choices: choices,
+			},
+		})
+
+		if err != nil {
+			slog.Error("error responding to request", "err", err)
+		}
+	}
+}
+
 func handleMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 	data := intr.ApplicationCommandData().Options[0]
 	switch data.Name {
@@ -212,5 +320,7 @@ func handleMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 		addMovie(bot, intr)
 	case "list":
 		movieList(bot, intr)
+	case "rate":
+		rateMovie(bot, intr)
 	}
 }

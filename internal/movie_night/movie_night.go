@@ -16,6 +16,8 @@ type Movie struct {
 	Image       string
 	AddedBy     string    `db:"addedBy"`
 	WatchedOn   time.Time `db:"watchedOn"`
+
+	Ratings []MovieRating
 }
 
 func (m *Movie) GetURL() string {
@@ -38,13 +40,93 @@ func AddMovie(ctx context.Context, storage *database.Storage, ID string, user st
 	})
 }
 
+func GetMovie(ctx context.Context, storage *database.Storage, ID string) (Movie, error) {
+	res := Movie{}
+
+	return res, storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
+		err := tx.GetContext(ctx, &res, "SELECT * FROM Movies WHERE ID = ?", ID)
+		if err != nil {
+			return fmt.Errorf("failure getting movies: %w", err)
+		}
+
+		err = tx.SelectContext(ctx, &res.Ratings, "SELECT * FROM MovieRatings WHERE movieId = ?", res.ID)
+		if err != nil {
+			return fmt.Errorf("failure getting movie ratings: %w", err)
+		}
+
+		return nil
+	})
+}
+
 func GetMovies(ctx context.Context, storage *database.Storage) ([]Movie, error) {
 	res := []Movie{}
 
 	return res, storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
 		err := tx.SelectContext(ctx, &res, "SELECT * FROM Movies")
 		if err != nil {
-			return fmt.Errorf("failure getting a quotes: %w", err)
+			return fmt.Errorf("failure getting movies: %w", err)
+		}
+
+		for i, movie := range res {
+			err = tx.SelectContext(ctx, &res[i].Ratings, "SELECT * FROM MovieRatings WHERE movieId = ?", movie.ID)
+			if err != nil {
+				return fmt.Errorf("failure getting movie ratings: %w", err)
+			}
+		}
+
+		return nil
+	})
+}
+
+func GetMoviesByTitle(ctx context.Context, storage *database.Storage, title string) ([]Movie, error) {
+	res := []Movie{}
+
+	return res, storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
+		err := tx.SelectContext(ctx, &res, "SELECT * FROM Movies WHERE title LIKE '%"+title+"%'")
+		if err != nil {
+			return fmt.Errorf("failure getting movies: %w", err)
+		}
+
+		for i, movie := range res {
+			err = tx.SelectContext(ctx, &res[i].Ratings, "SELECT * FROM MovieRatings WHERE movieId = ?", movie.ID)
+			if err != nil {
+				return fmt.Errorf("failure getting movie ratings: %w", err)
+			}
+		}
+
+		return nil
+	})
+}
+
+func RateMovie(ctx context.Context, storage *database.Storage, ID string, user string, rating float64) error {
+	return storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
+		_, err := tx.ExecContext(ctx,
+			`INSERT INTO MovieRatings VALUES(?, ?, ?)
+      ON CONFLICT(movieId, userId) DO UPDATE SET rating=excluded.rating`,
+			ID, user, rating,
+		)
+
+		if err != nil {
+			return fmt.Errorf("failure adding a rating: %w", err)
+		}
+
+		return nil
+	})
+}
+
+type MovieRating struct {
+	MovieID string `db:"movieId"`
+	UserID  string `db:"userId"`
+	Rating  float64
+}
+
+func GetRatings(ctx context.Context, storage *database.Storage, movieID string) ([]MovieRating, error) {
+	res := []MovieRating{}
+
+	return res, storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
+		err := tx.SelectContext(ctx, &res, "SELECT * FROM MovieRatings WHERE movieId = ?", movieID)
+		if err != nil {
+			return fmt.Errorf("failure getting movie ratings: %w", err)
 		}
 
 		return nil

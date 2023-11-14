@@ -118,6 +118,26 @@ var (
 					Description: "Browse the movie list",
 					Type:        discordgo.ApplicationCommandOptionSubCommand,
 				},
+				{
+					Name:        "rate",
+					Description: "Rate movie in the list",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:         "title",
+							Description:  "Title of the movie",
+							Type:         discordgo.ApplicationCommandOptionString,
+							Required:     true,
+							Autocomplete: true,
+						},
+						{
+							Name:        "rating",
+							Description: "Rating of the movie from -10.0 to 10.0",
+							Type:        discordgo.ApplicationCommandOptionNumber,
+							Required:    true,
+						},
+					},
+				},
 			},
 		},
 	}
