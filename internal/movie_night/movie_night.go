@@ -2,6 +2,8 @@ package movienight
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -29,11 +31,11 @@ func doesMovieExist(tx *sqlighter.Tx, ID string) (bool, error) {
 
 	var id string
 	err := row.Scan(&id)
-	if err != nil {
-		return false, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
 	}
 
-	return id == ID, nil
+	return true, err
 }
 
 func AddMovie(ctx context.Context, storage *database.Storage, ID string, user string, date time.Time) error {
