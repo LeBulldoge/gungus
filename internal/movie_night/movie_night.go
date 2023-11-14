@@ -24,16 +24,25 @@ func (m *Movie) GetURL() string {
 	return SOURCE + "/title/" + m.ID
 }
 
+func doesMovieExist(tx *sqlighter.Tx, ID string) (bool, error) {
+	row := tx.QueryRowx("SELECT ID FROM Movies WHERE ID = ?", ID)
+
+	var id string
+	err := row.Scan(&id)
+	if err != nil {
+		return false, err
+	}
+
+	return id == ID, nil
+}
+
 func AddMovie(ctx context.Context, storage *database.Storage, ID string, user string, date time.Time) error {
 	return storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
-		row := tx.QueryRowx("SELECT ID FROM Movies WHERE ID = ?", ID)
-
-		var id string
-		err := row.Scan(&id)
+		movieExists, err := doesMovieExist(tx, ID)
 		if err != nil {
 			return err
 		}
-		if id == ID {
+		if movieExists {
 			return fmt.Errorf("movie already exists")
 		}
 
