@@ -32,7 +32,7 @@ func addMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 			return
 		}
 
-		response, err := buildMovieResponse(bot, intr, movieID)
+		response, err := buildMovieEmbedResponse(bot, intr, movieID)
 		if err != nil {
 			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure displaying movie: %v", err))
 		}
@@ -236,7 +236,7 @@ func movieListPaginate(bot *Bot, intr *discordgo.InteractionCreate) {
 	}
 }
 
-func buildMovieResponse(bot *Bot, intr *discordgo.InteractionCreate, movieID string) (*discordgo.InteractionResponse, error) {
+func buildMovieEmbedResponse(bot *Bot, intr *discordgo.InteractionCreate, movieID string) (*discordgo.InteractionResponse, error) {
 	movie, err := movienight.GetMovie(context.TODO(), bot.storage, movieID)
 	if err != nil {
 		return nil, fmt.Errorf("failure getting a movie: %w", err)
@@ -273,7 +273,7 @@ func rateMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 			return
 		}
 
-		response, err := buildMovieResponse(bot, intr, movieID)
+		response, err := buildMovieEmbedResponse(bot, intr, movieID)
 		if err != nil {
 			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure displaying movie: %v", err))
 		}

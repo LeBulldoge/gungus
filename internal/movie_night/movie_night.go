@@ -25,13 +25,24 @@ func (m *Movie) GetURL() string {
 }
 
 func AddMovie(ctx context.Context, storage *database.Storage, ID string, user string, date time.Time) error {
-	movie, err := BuildMovieFromID(ID)
-	if err != nil {
-		return err
-	}
-
 	return storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
-		_, err := tx.ExecContext(ctx, "INSERT INTO Movies VALUES(?, ?, ?, ?, ?, ?)", movie.ID, movie.Title, movie.Description, movie.Image, user, date.UTC())
+		row := tx.QueryRowx("SELECT ID FROM Movies WHERE ID = ?", ID)
+
+		var id string
+		err := row.Scan(&id)
+		if err != nil {
+			return err
+		}
+		if id == ID {
+			return fmt.Errorf("movie already exists")
+		}
+
+		movie, err := BuildMovieFromID(ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, "INSERT INTO Movies VALUES(?, ?, ?, ?, ?, ?)", movie.ID, movie.Title, movie.Description, movie.Image, user, date.UTC())
 		if err != nil {
 			return fmt.Errorf("failure adding a movie: %w", err)
 		}
