@@ -65,3 +65,28 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 
 	return res, resErr
 }
+
+func BuildMovieFromID(ID string) (Movie, error) {
+	c := colly.NewCollector()
+
+	res := Movie{}
+	var resErr error
+	c.OnHTML("head", func(h *colly.HTMLElement) {
+		res.ID = ID
+		res.Description = h.ChildAttr("meta[name=description]", "content")
+		res.Title = h.ChildAttr("meta[property='og:title']", "content")
+		res.Image = h.ChildAttr("meta[property='og:image']", "content")
+	})
+
+	c.OnError(func(_ *colly.Response, err error) {
+		resErr = err
+	})
+
+	err := c.Visit(SOURCE + "/title/" + ID)
+	if err != nil {
+		return res, err
+	}
+	c.Wait()
+
+	return res, resErr
+}

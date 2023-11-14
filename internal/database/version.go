@@ -4,9 +4,12 @@ import (
 	"github.com/LeBulldoge/sqlighter/schema"
 )
 
-const targetVersion = 3
+const targetVersion = 4
 
 var versionMap = schema.VersionMap{
+	4: schema.Version{
+		Up: version4Up,
+	},
 	3: schema.Version{
 		Up: version3Up,
 	},
@@ -17,6 +20,17 @@ var versionMap = schema.VersionMap{
 		Up: version1Up,
 	},
 }
+
+const version4Up = `CREATE TABLE Movies (
+    id          TEXT     NOT NULL PRIMARY KEY
+                UNIQUE,
+    title       TEXT     NOT NULL,
+    description TEXT     NOT NULL,
+    image       TEXT     NOT NULL,
+    addedBy     TEXT     NOT NULL,
+    watchedOn   DATETIME NOT NULL
+);
+`
 
 const version3Up = `
   UPDATE PollOptions SET name = "option_" || name
