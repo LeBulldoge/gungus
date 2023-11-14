@@ -1,6 +1,7 @@
 package movienight
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -39,7 +40,7 @@ func TestBuildMovie(t *testing.T) {
 		t.Fatalf("error received. got %+v, expected, %+v", err, want)
 	}
 
-	if want != res {
+	if !reflect.DeepEqual(res, want) {
 		t.Fatalf("wrong movies received. got %+v, expected, %+v", res, want)
 	}
 }
