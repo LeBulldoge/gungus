@@ -28,8 +28,11 @@ func (bot *Bot) addHandlers() {
 				h(bot, intr)
 			}
 		case discordgo.InteractionMessageComponent:
-			if strings.HasPrefix(intr.MessageComponentData().CustomID, "option") {
+			customID := intr.MessageComponentData().CustomID
+			if strings.HasPrefix(customID, "option") {
 				handleVote(bot, intr)
+			} else if strings.HasPrefix(customID, "movielist") {
+				movieListPaginate(bot, intr)
 			} else {
 				slog.Error("unsupported component type", "id", intr.MessageComponentData().CustomID)
 			}
