@@ -21,6 +21,7 @@ var versionMap = schema.VersionMap{
 	},
 }
 
+// Add Movies and MovieRatings tables
 const version4Up = `CREATE TABLE Movies (
     id          TEXT     NOT NULL PRIMARY KEY
                 UNIQUE,
@@ -40,10 +41,12 @@ CREATE TABLE MovieRatings (
 );
 `
 
+// Fix PollOptions names
 const version3Up = `
   UPDATE PollOptions SET name = "option_" || name
 `
 
+// Add quotes table
 const version2Up = `CREATE TABLE Quotes (
   user TEXT     NOT NULL,
   text TEXT     NOT NULL,
