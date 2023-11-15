@@ -5,6 +5,9 @@ ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
+ARG VERSION
+ARG BUILD
+
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -13,7 +16,7 @@ RUN go mod download
 COPY cmd/ cmd/
 COPY internal/ internal/
 COPY main.go ./
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s" -trimpath
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s -X main.version=$VERSION -X main.build=$BUILD" -trimpath
 
 FROM --platform=${TARGETPLATFORM} alpine:3.18
 WORKDIR /app
