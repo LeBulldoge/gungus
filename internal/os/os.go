@@ -5,9 +5,21 @@ import (
 	"path/filepath"
 )
 
+var customConfigDir string
+
+func SetCustomConfigDir(dir string) {
+	customConfigDir = dir
+}
+
 func ConfigPath() string {
-	config, _ := os.UserConfigDir()
-	path := filepath.Join(config, "gungus")
+	var configDir string
+	if len(customConfigDir) > 0 {
+		configDir = customConfigDir
+	} else {
+		configDir, _ = os.UserConfigDir()
+	}
+
+	path := filepath.Join(configDir, "gungus")
 
 	return path
 }

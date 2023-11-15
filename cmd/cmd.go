@@ -9,6 +9,7 @@ import (
 
 	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord"
+	gos "github.com/LeBulldoge/gungus/internal/os"
 )
 
 // flags
@@ -22,7 +23,11 @@ func Run() {
 
 	slog.Info("starting bot...")
 
-	storage := database.New(*configDir)
+	if configDir != nil {
+		gos.SetCustomConfigDir(*configDir)
+	}
+
+	storage := database.New(gos.ConfigPath())
 	err := storage.Open(context.TODO())
 	if err != nil {
 		slog.Error("error while opening database", "err", err)
