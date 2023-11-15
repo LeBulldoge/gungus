@@ -30,7 +30,8 @@ docker:
 
 publish:
 	podman build --platform=linux/arm64,linux/amd64 --manifest ghcr.io/lebulldoge/gungus:${VERSION} -f builder.Dockerfile --build-arg='VERSION=${VERSION}' --build-arg='BUILD=${BUILD}'
+	podman manifest push ghcr.io/lebulldoge/gungus:${VERSION}
+	podman manifest rm ghcr.io/lebulldoge/gungus:${VERSION}
 	podman manifest create --all ghcr.io/lebulldoge/gungus:latest ghcr.io/lebulldoge/gungus:${VERSION}
 	podman manifest push ghcr.io/lebulldoge/gungus:latest
 	podman manifest rm ghcr.io/lebulldoge/gungus:latest
-	podman manifest rm ghcr.io/lebulldoge/gungus:${VERSION}
