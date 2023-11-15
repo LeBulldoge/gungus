@@ -1,6 +1,7 @@
 package movienight
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/os"
@@ -64,6 +65,8 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	searchCollector.OnError(func(_ *colly.Response, err error) {
 		resErr = err
 	})
+
+	query = url.PathEscape(query)
 
 	err := searchCollector.Visit(searchSource + "/find/?s=tt&q=" + query + "&ref_=nv_sr_sm")
 	if err != nil {
