@@ -18,10 +18,10 @@ var (
 	botToken  = flag.String("token", "", "Bot token")
 )
 
-func Run() {
+func Run(version string, build string) {
 	flag.Parse()
 
-	slog.Info("starting bot...")
+	slog.Info("starting gungus", "version", version, "build", build)
 
 	if configDir != nil {
 		gos.SetCustomConfigDir(*configDir)
