@@ -20,7 +20,8 @@ type MovieSearchResult struct {
 	Title string
 }
 
-const SOURCE = "https://www.imdb.com"
+const allowedDomain = "www.imdb.com"
+const searchSource = "https://www.imdb.com"
 
 // var reentranceFlag atomic.Int64
 
@@ -40,6 +41,7 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	if searchCollector == nil {
 		searchCollector = colly.NewCollector(
 			colly.AllowURLRevisit(),
+			colly.AllowedDomains(allowedDomain),
 			colly.CacheDir(os.ConfigPath()+"/cache/colly/"),
 			colly.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/118.0"),
 		)
@@ -59,7 +61,7 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 		resErr = err
 	})
 
-	err := searchCollector.Visit(SOURCE + "/find/?s=tt&q=" + query + "&ref_=nv_sr_sm")
+	err := searchCollector.Visit(searchSource + "/find/?s=tt&q=" + query + "&ref_=nv_sr_sm")
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +84,7 @@ func BuildMovieFromID(ID string) (Movie, error) {
 		resErr = err
 	})
 
-	err := searchCollector.Visit(SOURCE + "/title/" + ID)
+	err := searchCollector.Visit(searchSource + "/title/" + ID)
 	if err != nil {
 		return res, err
 	}

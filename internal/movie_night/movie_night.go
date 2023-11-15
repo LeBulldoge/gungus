@@ -23,7 +23,7 @@ type Movie struct {
 }
 
 func (m *Movie) GetURL() string {
-	return SOURCE + "/title/" + m.ID
+	return searchSource + "/title/" + m.ID
 }
 
 func doesMovieExist(tx *sqlighter.Tx, ID string) (bool, error) {
