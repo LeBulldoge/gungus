@@ -307,6 +307,7 @@ func rateMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 		movies, err := movienight.GetMoviesByTitle(context.TODO(), bot.storage, title)
 		if err != nil {
 			slog.Error(fmt.Sprintf("error getting movies: %v", err))
+			return
 		}
 
 		choices := []*discordgo.ApplicationCommandOptionChoice{}
