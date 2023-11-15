@@ -1,10 +1,9 @@
 package movienight
 
 import (
-	"log/slog"
 	"strings"
-	"sync"
 
+	"github.com/LeBulldoge/gungus/internal/os"
 	"github.com/gocolly/colly"
 )
 
@@ -24,28 +23,31 @@ type MovieSearchResult struct {
 const SOURCE = "https://www.imdb.com"
 
 // var reentranceFlag atomic.Int64
-var mutex sync.Mutex
+
+var searchCollector *colly.Collector
 
 func SearchMovies(query string) ([]MovieSearchResult, error) {
 	if len(query) < 3 {
 		return []MovieSearchResult{}, nil
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
 	//	if reentranceFlag.CompareAndSwap(0, 1) {
 	//		defer reentranceFlag.Store(0)
 	//	} else {
-	//		return []Movie{}, nil
+	//		return []MovieSearchResult{}, nil
 	//	}
 
-	c := colly.NewCollector()
-
-	slog.Debug("searching for movies", "query", query)
+	if searchCollector == nil {
+		searchCollector = colly.NewCollector(
+			colly.AllowURLRevisit(),
+			colly.CacheDir(os.ConfigPath()+"/cache/colly/"),
+			colly.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/118.0"),
+		)
+	}
 
 	res := []MovieSearchResult{}
 	var resErr error
-	c.OnHTML("li.find-title-result", func(h *colly.HTMLElement) {
+	searchCollector.OnHTML("li.find-title-result", func(h *colly.HTMLElement) {
 		movie := MovieSearchResult{}
 		movie.ID = h.ChildAttr("a", "href")
 		movie.ID = strings.Split(movie.ID, "/")[2] // /title/[tt000000]/?ref_=fn_tt_tt_1
@@ -53,40 +55,38 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 		res = append(res, movie)
 	})
 
-	c.OnError(func(_ *colly.Response, err error) {
+	searchCollector.OnError(func(_ *colly.Response, err error) {
 		resErr = err
 	})
 
-	err := c.Visit(SOURCE + "/find/?s=tt&q=" + query + "&ref_=nv_sr_sm")
+	err := searchCollector.Visit(SOURCE + "/find/?s=tt&q=" + query + "&ref_=nv_sr_sm")
 	if err != nil {
 		return nil, err
 	}
-	c.Wait()
+	searchCollector.Wait()
 
 	return res, resErr
 }
 
 func BuildMovieFromID(ID string) (Movie, error) {
-	c := colly.NewCollector()
-
 	res := Movie{}
 	var resErr error
-	c.OnHTML("head", func(h *colly.HTMLElement) {
+	searchCollector.OnHTML("head", func(h *colly.HTMLElement) {
 		res.ID = ID
 		res.Description = h.ChildAttr("meta[name=description]", "content")
 		res.Title = h.ChildAttr("meta[property='og:title']", "content")
 		res.Image = h.ChildAttr("meta[property='og:image']", "content")
 	})
 
-	c.OnError(func(_ *colly.Response, err error) {
+	searchCollector.OnError(func(_ *colly.Response, err error) {
 		resErr = err
 	})
 
-	err := c.Visit(SOURCE + "/title/" + ID)
+	err := searchCollector.Visit(SOURCE + "/title/" + ID)
 	if err != nil {
 		return res, err
 	}
-	c.Wait()
+	searchCollector.Wait()
 
 	return res, resErr
 }
