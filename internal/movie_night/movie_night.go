@@ -84,7 +84,7 @@ func GetMovies(ctx context.Context, storage *database.Storage) ([]Movie, error) 
 	res := []Movie{}
 
 	return res, storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
-		err := tx.SelectContext(ctx, &res, "SELECT * FROM Movies")
+		err := tx.SelectContext(ctx, &res, "SELECT * FROM Movies ORDER BY watchedOn DESC")
 		if err != nil {
 			return fmt.Errorf("failure getting movies: %w", err)
 		}

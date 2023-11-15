@@ -38,7 +38,6 @@ CREATE TABLE MovieRatings (
     PRIMARY KEY(movieId, userId),
     UNIQUE(movieId, userId)
 );
-
 `
 
 const version3Up = `
