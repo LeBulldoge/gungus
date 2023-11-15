@@ -23,7 +23,12 @@ func Run(version string, build string) {
 
 	slog.Info("starting gungus", "version", version, "build", build)
 
-	if configDir != nil {
+	if len(*botToken) == 0 {
+		slog.Error("Please provide a discord bot authentication token.\nMore info at https://discord.com/developers/docs/getting-started")
+		return
+	}
+
+	if len(*configDir) > 0 {
 		gos.SetCustomConfigDir(*configDir)
 	}
 
