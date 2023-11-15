@@ -27,6 +27,15 @@ const searchSource = "https://www.imdb.com"
 
 var searchCollector *colly.Collector
 
+func initCollector() {
+	searchCollector = colly.NewCollector(
+		colly.AllowURLRevisit(),
+		colly.AllowedDomains(allowedDomain),
+		colly.CacheDir(os.ConfigPath()+"/cache/colly/"),
+		colly.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/118.0"),
+	)
+}
+
 func SearchMovies(query string) ([]MovieSearchResult, error) {
 	if len(query) < 3 {
 		return []MovieSearchResult{}, nil
@@ -39,12 +48,7 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	//	}
 
 	if searchCollector == nil {
-		searchCollector = colly.NewCollector(
-			colly.AllowURLRevisit(),
-			colly.AllowedDomains(allowedDomain),
-			colly.CacheDir(os.ConfigPath()+"/cache/colly/"),
-			colly.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/118.0"),
-		)
+		initCollector()
 	}
 
 	res := []MovieSearchResult{}
@@ -73,6 +77,11 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 func BuildMovieFromID(ID string) (Movie, error) {
 	res := Movie{}
 	var resErr error
+
+	if searchCollector == nil {
+		initCollector()
+	}
+
 	searchCollector.OnHTML("head", func(h *colly.HTMLElement) {
 		res.ID = ID
 		res.Description = h.ChildAttr("meta[name=description]", "content")
