@@ -16,12 +16,11 @@ func ConfigPath() string {
 	if len(customConfigDir) > 0 {
 		configDir = customConfigDir
 	} else {
-		configDir, _ = os.UserConfigDir()
+		dir, _ := os.UserConfigDir()
+		configDir = filepath.Join(dir, "gungus")
 	}
 
-	path := filepath.Join(configDir, "gungus")
-
-	return path
+	return configDir
 }
 
 func FileExists(path string) bool {
