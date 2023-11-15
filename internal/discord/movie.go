@@ -162,6 +162,13 @@ func movieList(bot *Bot, intr *discordgo.InteractionCreate) {
 							},
 							Style: discordgo.SecondaryButton,
 						},
+						discordgo.Button{
+							CustomID: "movielist_" + intr.ID + "_refresh",
+							Emoji: discordgo.ComponentEmoji{
+								Name: "🔄",
+							},
+							Style: discordgo.SecondaryButton,
+						},
 					},
 				},
 			},
@@ -205,7 +212,7 @@ func movieListPaginate(bot *Bot, intr *discordgo.InteractionCreate) {
 		return
 	}
 
-	index := lastIndex
+	var index int
 
 	customIDSplit := strings.Split(intr.MessageComponentData().CustomID, "_")
 	dir := customIDSplit[len(customIDSplit)-1]
@@ -214,11 +221,17 @@ func movieListPaginate(bot *Bot, intr *discordgo.InteractionCreate) {
 	case "forward":
 		if len(movies) > lastIndex+1 {
 			index = lastIndex + 1
+		} else {
+			index = 0
 		}
 	case "back":
 		if 0 <= lastIndex-1 {
 			index = lastIndex - 1
+		} else {
+			index = len(movies) - 1
 		}
+	case "refresh":
+		index = lastIndex
 	default:
 		displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("error parsing movie list direction: %s", dir))
 		return
