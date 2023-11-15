@@ -124,6 +124,10 @@ func movieList(bot *Bot, intr *discordgo.InteractionCreate) {
 		displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("error adding a movie: %v", err))
 		return
 	}
+	if len(movies) == 0 {
+		displayInteractionError(bot.session, intr.Interaction, "Movie list is empty! You can add movies via the `/movie add` command.")
+		return
+	}
 
 	movie := movies[0]
 	embed, err := embedFromMovie(bot, intr.GuildID, movie)
