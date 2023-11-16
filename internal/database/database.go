@@ -18,7 +18,7 @@ func New(configDir string) *Storage {
 }
 
 func (m *Storage) Open(ctx context.Context) error {
-	return m.db.Open(ctx)
+	return m.db.Open(ctx, "foreign_keys=ON")
 }
 
 func (m *Storage) Close() error {

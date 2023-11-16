@@ -83,23 +83,3 @@ func (bot *Bot) Shutdown() {
 
 	slog.Info("gracefully shutting down.")
 }
-
-func isCustomEmoji(s string) bool {
-	return s[0] == '<'
-}
-
-func emojiComponentFromString(s string) discordgo.ComponentEmoji {
-	emoji := discordgo.ComponentEmoji{}
-	if isCustomEmoji(s) {
-		s = s[1 : len(s)-2]
-		parts := strings.Split(s, ":")
-
-		emoji.Animated = parts[0] == "a"
-		emoji.Name = parts[1]
-		emoji.ID = parts[2]
-	} else {
-		emoji.Name = strings.Trim(s, " ")
-	}
-
-	return emoji
-}

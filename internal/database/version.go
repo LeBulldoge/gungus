@@ -4,9 +4,12 @@ import (
 	"github.com/LeBulldoge/sqlighter/schema"
 )
 
-const targetVersion = 4
+const targetVersion = 5
 
 var versionMap = schema.VersionMap{
+	5: schema.Version{
+		Up: version5Up,
+	},
 	4: schema.Version{
 		Up: version4Up,
 	},
@@ -20,6 +23,28 @@ var versionMap = schema.VersionMap{
 		Up: version1Up,
 	},
 }
+
+const version5Up = `
+PRAGMA foreign_keys=OFF;
+
+CREATE TABLE MovieRatingsNew (
+    movieId     TEXT     NOT NULL
+                         REFERENCES Movies(id) ON DELETE CASCADE,
+    userId      TEXT     NOT NULL,
+    rating      NUMBER   NOT NULL,
+    PRIMARY KEY(movieId, userId),
+    UNIQUE(movieId, userId)
+);
+
+INSERT INTO MovieRatingsNew
+SELECT * FROM MovieRatings;
+
+DROP TABLE MovieRatings;
+
+ALTER TABLE MovieRatingsNew RENAME TO MovieRatings;
+
+PRAGMA foreign_keys=ON;
+`
 
 // Add Movies and MovieRatings tables
 const version4Up = `CREATE TABLE Movies (
