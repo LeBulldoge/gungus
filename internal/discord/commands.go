@@ -138,6 +138,20 @@ var (
 						},
 					},
 				},
+				{
+					Name:        "remove",
+					Description: "Remove a movie from the list",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:         "title",
+							Description:  "Title of the movie",
+							Type:         discordgo.ApplicationCommandOptionString,
+							Required:     true,
+							Autocomplete: true,
+						},
+					},
+				},
 			},
 		},
 	}

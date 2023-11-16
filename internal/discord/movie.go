@@ -303,32 +303,72 @@ func rateMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 			slog.Error("error responding to request", "err", err)
 		}
 	case discordgo.InteractionApplicationCommandAutocomplete:
-		title := opt.Options[0].StringValue()
-		movies, err := movienight.GetMoviesByTitle(context.TODO(), bot.storage, title)
+		err := moveListAutocomplete(bot, intr)
 		if err != nil {
-			slog.Error(fmt.Sprintf("error getting movies: %v", err))
+			slog.Error("failure providing autocompletion for movie/rate", "err", err)
+		}
+	}
+}
+
+func movieDelete(bot *Bot, intr *discordgo.InteractionCreate) {
+	opt := intr.ApplicationCommandData().Options[0]
+
+	switch intr.Type {
+	case discordgo.InteractionApplicationCommand:
+		movieID := opt.Options[0].StringValue()
+
+		err := movienight.DeleteMovie(context.TODO(), bot.storage, movieID)
+		if err != nil {
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure deleting movie %s: %v", movieID, err))
 			return
 		}
 
-		choices := []*discordgo.ApplicationCommandOptionChoice{}
-		for _, movie := range movies {
-			choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
-				Name:  movie.Title,
-				Value: movie.ID,
+		err = bot.session.InteractionRespond(intr.Interaction,
+			&discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("Movie `%s` successfully deleted!", movieID),
+				},
 			})
-		}
-
-		err = bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionApplicationCommandAutocompleteResult,
-			Data: &discordgo.InteractionResponseData{
-				Choices: choices,
-			},
-		})
-
 		if err != nil {
 			slog.Error("error responding to request", "err", err)
 		}
+	case discordgo.InteractionApplicationCommandAutocomplete:
+		err := moveListAutocomplete(bot, intr)
+		if err != nil {
+			slog.Error("failure providing autocompletion for movie/rate", "err", err)
+		}
 	}
+}
+
+func moveListAutocomplete(bot *Bot, intr *discordgo.InteractionCreate) error {
+	opt := intr.ApplicationCommandData().Options[0]
+	title := opt.Options[0].StringValue()
+	movies, err := movienight.GetMoviesByTitle(context.TODO(), bot.storage, title)
+	if err != nil {
+		return fmt.Errorf("failure getting movies by title: %w", err)
+	}
+
+	choices := []*discordgo.ApplicationCommandOptionChoice{}
+	for _, movie := range movies {
+		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
+			Name:  movie.Title,
+			Value: movie.ID,
+		})
+	}
+
+	err = bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: choices,
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("error responding to request: %w", err)
+	}
+
+	return nil
 }
 
 func handleMovie(bot *Bot, intr *discordgo.InteractionCreate) {
@@ -340,5 +380,7 @@ func handleMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 		movieList(bot, intr)
 	case "rate":
 		rateMovie(bot, intr)
+	case "remove":
+		movieDelete(bot, intr)
 	}
 }

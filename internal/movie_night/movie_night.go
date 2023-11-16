@@ -136,6 +136,16 @@ func RateMovie(ctx context.Context, storage *database.Storage, ID string, user s
 	})
 }
 
+func DeleteMovie(ctx context.Context, storage *database.Storage, ID string) error {
+	return storage.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
+		_, err := tx.ExecContext(ctx,
+			`DELETE FROM Movies WHERE id = ?`,
+			ID,
+		)
+		return err
+	})
+}
+
 type MovieRating struct {
 	MovieID string `db:"movieId"`
 	UserID  string `db:"userId"`
