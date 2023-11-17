@@ -52,7 +52,7 @@ func TestSearchCharacters(t *testing.T) {
 		"Parker", "Alien", "Mother",
 	}
 
-	res, err := SearchCharacters(query)
+	res, err := SearchCharacters(query, "")
 	if err != nil {
 		t.Fatalf("error received. got %+v, expected, %+v", err, want)
 	}

@@ -414,9 +414,13 @@ func moveListAutocomplete(bot *Bot, intr *discordgo.InteractionCreate) error {
 
 func movieCastAutocomplete(bot *Bot, intr *discordgo.InteractionCreate) error {
 	opt := intr.ApplicationCommandData().Options[0]
-	cast, err := movienight.SearchCharacters(opt.Options[0].StringValue())
+	cast, err := movienight.SearchCharacters(opt.Options[0].StringValue(), opt.Options[1].StringValue())
 	if err != nil {
 		return fmt.Errorf("failure getting movie cast: %w", err)
+	}
+
+	if len(cast) > 25 {
+		cast = cast[:25]
 	}
 
 	choices := []*discordgo.ApplicationCommandOptionChoice{}

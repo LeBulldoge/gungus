@@ -78,7 +78,7 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	return res, resErr
 }
 
-func SearchCharacters(movieId string) ([]string, error) {
+func SearchCharacters(movieId string, query string) ([]string, error) {
 	if searchCollector == nil {
 		initCollector()
 	}
@@ -93,6 +93,10 @@ func SearchCharacters(movieId string) ([]string, error) {
 			}
 
 			if slices.Contains(res, character) {
+				return true
+			}
+
+			if !strings.Contains(character, query) {
 				return true
 			}
 
