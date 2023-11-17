@@ -139,6 +139,27 @@ var (
 					},
 				},
 				{
+					Name:        "cast",
+					Description: "Tag yourself in the movie",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:         "title",
+							Description:  "Title of the movie",
+							Type:         discordgo.ApplicationCommandOptionString,
+							Required:     true,
+							Autocomplete: true,
+						},
+						{
+							Name:         "character",
+							Description:  "Name of the character",
+							Type:         discordgo.ApplicationCommandOptionString,
+							Required:     true,
+							Autocomplete: true,
+						},
+					},
+				},
+				{
 					Name:        "remove",
 					Description: "Remove a movie from the list",
 					Type:        discordgo.ApplicationCommandOptionSubCommand,

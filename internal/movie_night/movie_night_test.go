@@ -44,3 +44,20 @@ func TestBuildMovie(t *testing.T) {
 		t.Fatalf("wrong movies received. got %+v, expected, %+v", res, want)
 	}
 }
+
+func TestSearchCharacters(t *testing.T) {
+	query := "tt0078748"
+	want := []string{
+		"Dallas", "Ripley", "Lambert", "Brett", "Kane", "Ash",
+		"Parker", "Alien", "Mother",
+	}
+
+	res, err := SearchCharacters(query)
+	if err != nil {
+		t.Fatalf("error received. got %+v, expected, %+v", err, want)
+	}
+
+	if !reflect.DeepEqual(res, want) {
+		t.Fatalf("wrong cast received. got %+v, expected, %+v", res, want)
+	}
+}

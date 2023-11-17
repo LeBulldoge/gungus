@@ -2,6 +2,7 @@ package movienight
 
 import (
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/os"
@@ -69,6 +70,42 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	query = url.PathEscape(query)
 
 	err := searchCollector.Visit(searchSource + "/find/?s=tt&q=" + query + "&ref_=nv_sr_sm")
+	if err != nil {
+		return nil, err
+	}
+	searchCollector.Wait()
+
+	return res, resErr
+}
+
+func SearchCharacters(movieId string) ([]string, error) {
+	if searchCollector == nil {
+		initCollector()
+	}
+
+	res := []string{}
+	var resErr error
+	searchCollector.OnHTML("table.cast_list", func(h *colly.HTMLElement) {
+		h.ForEachWithBreak("td.character", func(_ int, h *colly.HTMLElement) bool {
+			character := h.ChildText("a")
+			if len(character) == 0 {
+				return !strings.HasPrefix(h.Text, "Rest of cast")
+			}
+
+			if slices.Contains(res, character) {
+				return true
+			}
+
+			res = append(res, character)
+			return true
+		})
+	})
+
+	searchCollector.OnError(func(_ *colly.Response, err error) {
+		resErr = err
+	})
+
+	err := searchCollector.Visit(searchSource + "/title/" + movieId + "/fullcredits")
 	if err != nil {
 		return nil, err
 	}

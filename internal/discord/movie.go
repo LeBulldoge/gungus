@@ -13,6 +13,22 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+func handleMovie(bot *Bot, intr *discordgo.InteractionCreate) {
+	data := intr.ApplicationCommandData().Options[0]
+	switch data.Name {
+	case "add":
+		addMovie(bot, intr)
+	case "list":
+		movieList(bot, intr)
+	case "rate":
+		rateMovie(bot, intr)
+	case "remove":
+		movieDelete(bot, intr)
+	case "cast":
+		addUserAsCastMember(bot, intr)
+	}
+}
+
 func addMovie(bot *Bot, intr *discordgo.InteractionCreate) {
 	opt := intr.ApplicationCommandData().Options[0]
 
@@ -91,16 +107,41 @@ func embedFromMovie(bot *Bot, guildId string, movie movienight.Movie) (*discordg
 	}
 
 	fields := []*discordgo.MessageEmbedField{}
-	for _, rating := range movie.Ratings {
-		user, err := bot.session.GuildMember(guildId, rating.UserID)
-		if err != nil {
-			return nil, err
-		}
+	if len(movie.Cast) > 0 {
 		fields = append(fields, &discordgo.MessageEmbedField{
-			Name:   "Rating by " + getMemberDisplayName(user),
-			Value:  strconv.FormatFloat(rating.Rating, 'f', 2, 64),
-			Inline: true,
+			Name: "--- Cast ---",
 		})
+		for _, castMember := range movie.Cast {
+			user, err := bot.session.GuildMember(guildId, castMember.UserID)
+			if err != nil {
+				return nil, err
+			}
+			fields = append(fields, &discordgo.MessageEmbedField{
+				Name:   castMember.Character,
+				Value:  "by " + getMemberDisplayName(user),
+				Inline: true,
+			})
+		}
+	}
+	fields = append(fields, &discordgo.MessageEmbedField{
+		Name:  "\u200b",
+		Value: "\u200b",
+	})
+	if len(movie.Ratings) > 0 {
+		fields = append(fields, &discordgo.MessageEmbedField{
+			Name: "--- Ratings ---",
+		})
+		for _, rating := range movie.Ratings {
+			user, err := bot.session.GuildMember(guildId, rating.UserID)
+			if err != nil {
+				return nil, err
+			}
+			fields = append(fields, &discordgo.MessageEmbedField{
+				Name:   strconv.FormatFloat(rating.Rating, 'f', 2, 64),
+				Value:  "by " + getMemberDisplayName(user),
+				Inline: true,
+			})
+		}
 	}
 
 	return &discordgo.MessageEmbed{
@@ -371,16 +412,71 @@ func moveListAutocomplete(bot *Bot, intr *discordgo.InteractionCreate) error {
 	return nil
 }
 
-func handleMovie(bot *Bot, intr *discordgo.InteractionCreate) {
-	data := intr.ApplicationCommandData().Options[0]
-	switch data.Name {
-	case "add":
-		addMovie(bot, intr)
-	case "list":
-		movieList(bot, intr)
-	case "rate":
-		rateMovie(bot, intr)
-	case "remove":
-		movieDelete(bot, intr)
+func movieCastAutocomplete(bot *Bot, intr *discordgo.InteractionCreate) error {
+	opt := intr.ApplicationCommandData().Options[0]
+	cast, err := movienight.SearchCharacters(opt.Options[0].StringValue())
+	if err != nil {
+		return fmt.Errorf("failure getting movie cast: %w", err)
+	}
+
+	choices := []*discordgo.ApplicationCommandOptionChoice{}
+	for _, character := range cast {
+		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
+			Name:  character,
+			Value: character,
+		})
+	}
+
+	err = bot.session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: choices,
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("error responding to request: %w", err)
+	}
+
+	return nil
+}
+
+func addUserAsCastMember(bot *Bot, intr *discordgo.InteractionCreate) {
+	opt := intr.ApplicationCommandData().Options[0]
+
+	switch intr.Type {
+	case discordgo.InteractionApplicationCommand:
+		movieID := opt.Options[0].StringValue()
+		character := opt.Options[1].StringValue()
+
+		err := movienight.AddUserAsCastMember(context.TODO(), bot.storage, movieID, intr.Member.User.ID, character)
+		if err != nil {
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure adding cast member for movie %s: %v", movieID, err))
+			return
+		}
+
+		err = bot.session.InteractionRespond(intr.Interaction,
+			&discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Movie cast member added!",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+		if err != nil {
+			slog.Error("error responding to request", "err", err)
+		}
+	case discordgo.InteractionApplicationCommandAutocomplete:
+		if opt.Options[0].Focused {
+			err := moveListAutocomplete(bot, intr)
+			if err != nil {
+				slog.Error("failure providing autocompletion for movie/cast/title", "err", err)
+			}
+		} else {
+			err := movieCastAutocomplete(bot, intr)
+			if err != nil {
+				slog.Error("failure providing autocompletion for movie/cast/character", "err", err)
+			}
+		}
 	}
 }
