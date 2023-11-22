@@ -1,7 +1,7 @@
 # gungus
 
 A discord bot made for the miscellaneous needs of mine and my friends' server. Intended to be self-hosted.
-Docker image is provided at `ghcr.io/lebulldoge/gungus:beta`
+Docker image is provided at `ghcr.io/lebulldoge/gungus`
 
 ### Usage:
 ```sh
