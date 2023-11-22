@@ -5,17 +5,19 @@ import (
 	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/database"
+	"github.com/LeBulldoge/gungus/internal/discord/playback"
 	"github.com/bwmarrin/discordgo"
 )
 
 type Bot struct {
-	session *discordgo.Session
-	storage *database.Storage
+	session         *discordgo.Session
+	storage         *database.Storage
+	playbackManager playback.PlaybackServiceManager
 }
 
 func NewBot(token string, storage *database.Storage) (*Bot, error) {
 	s, err := discordgo.New("Bot " + token)
-	return &Bot{session: s, storage: storage}, err
+	return &Bot{session: s, storage: storage, playbackManager: playback.NewManager()}, err
 }
 
 func (bot *Bot) addHandlers() {

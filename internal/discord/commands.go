@@ -175,10 +175,29 @@ var (
 				},
 			},
 		},
+		{
+			Name:        "play",
+			Description: "Play a youtube video",
+			Type:        discordgo.ChatApplicationCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "link",
+					Description: "Link to the video",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "stop",
+			Description: "Stop audio playback",
+			Type:        discordgo.ChatApplicationCommand,
+		},
 	}
 	commandHandlers = map[string]func(bot *Bot, i *discordgo.InteractionCreate){
 		"movie": handleMovie,
 		"poll":  handlePoll,
 		"quote": handleQuote,
+		"play":  handlePlay,
 	}
 )
