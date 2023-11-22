@@ -2,6 +2,7 @@ package discord
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -56,24 +57,9 @@ func handlePlay(bot *Bot, intr *discordgo.InteractionCreate) {
 	} else {
 		slog.Info("creating new playbackService", "url", videoUrl)
 
-		g, err := bot.session.State.Guild(intr.GuildID)
+		channelId, err := getUserChannelId(bot.session, intr.Member.User.ID, intr.GuildID)
 		if err != nil {
-			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure getting guild: %s", err))
-			return
-		}
-
-		slog.Info("guild acquired", "guildId", g.ID, "name", g.Name)
-
-		var channelId string
-		for _, vs := range g.VoiceStates {
-			slog.Info("user in channel", "usr", vs.UserID, "chn", vs.ChannelID)
-			if vs.UserID == intr.Member.User.ID {
-				channelId = vs.ChannelID
-				break
-			}
-		}
-		if len(channelId) == 0 {
-			displayInteractionError(bot.session, intr.Interaction, "failure joining channel: user is not in any channels")
+			displayInteractionError(bot.session, intr.Interaction, fmt.Sprintf("failure getting channel id: %s", err))
 			return
 		}
 
@@ -180,4 +166,28 @@ func createStopHandler(sesh *discordgo.Session, cancel context.CancelFunc, guild
 
 		cancel()
 	})
+}
+
+func getUserChannelId(sesh *discordgo.Session, userId string, guildId string) (string, error) {
+	var channelId string
+
+	g, err := sesh.State.Guild(guildId)
+	if err != nil {
+		return channelId, fmt.Errorf("failure getting guild: %w", err)
+	}
+
+	slog.Info("guild acquired", "guildId", g.ID, "name", g.Name)
+
+	for _, vs := range g.VoiceStates {
+		slog.Info("user in channel", "usr", vs.UserID, "chn", vs.ChannelID)
+		if vs.UserID == userId {
+			channelId = vs.ChannelID
+			break
+		}
+	}
+	if len(channelId) == 0 {
+		return channelId, errors.New("user is not in any voice channels")
+	}
+
+	return channelId, nil
 }

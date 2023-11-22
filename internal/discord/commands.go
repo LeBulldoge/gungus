@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -28,6 +29,11 @@ func buildPollCreateArgs() []*discordgo.ApplicationCommandOption {
 	return res
 }
 
+func checkDiscordErrCode(err error, code int) bool {
+	var restErr *discordgo.RESTError
+	return errors.As(err, &restErr) && restErr.Message != nil && restErr.Message.Code == code
+}
+
 func displayInteractionError(s *discordgo.Session, intr *discordgo.Interaction, content string) {
 	slog.Error(content)
 	err := s.InteractionRespond(intr, &discordgo.InteractionResponse{
@@ -38,7 +44,15 @@ func displayInteractionError(s *discordgo.Session, intr *discordgo.Interaction, 
 		},
 	})
 	if err != nil {
-		slog.Error("failed displaying error", "err", err)
+		if checkDiscordErrCode(err, discordgo.ErrCodeInteractionHasAlreadyBeenAcknowledged) {
+			_, err = s.FollowupMessageCreate(intr, false, &discordgo.WebhookParams{
+				Content: content,
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+		}
+		if err != nil {
+			slog.Error("failed displaying error", "err", err)
+		}
 	}
 }
 
