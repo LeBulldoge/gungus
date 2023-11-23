@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/LeBulldoge/gungus/internal/discord/playback"
 	"github.com/LeBulldoge/gungus/internal/youtube"
@@ -82,6 +83,24 @@ func handlePlay(bot *Bot, intr *discordgo.InteractionCreate) {
 			defer pCancel()
 
 			stopHandlerCancel := createStopHandler(bot.session, pCancel, guildId)
+			go func(channelId string, botUserId string) {
+				tick := time.NewTicker(time.Minute)
+				for {
+					select {
+					case <-pCtx.Done():
+					case <-tick.C:
+						slog.Info("PlaybackService: checking if bot is last in server...")
+						if ok, err := isBotLastInChannel(bot.session, botUserId, guildId, channelId); err != nil {
+							slog.Error("PlaybackService: timeout ticker error", "err", err)
+						} else if ok {
+							slog.Info("PlaybackService: bot is last in server, cancelling playback")
+							pCancel()
+						} else {
+							slog.Info("PlaybackService: bot is not last in server, continuing playback")
+						}
+					}
+				}
+			}(playbackService.ChannelId(), playbackService.UserId())
 
 			wg.Add(1)
 			err := playbackService.Run(pCtx, &wg)
@@ -190,4 +209,19 @@ func getUserChannelId(sesh *discordgo.Session, userId string, guildId string) (s
 	}
 
 	return channelId, nil
+}
+
+func isBotLastInChannel(sesh *discordgo.Session, botUserId string, guildId string, channelId string) (bool, error) {
+	g, err := sesh.State.Guild(guildId)
+	if err != nil {
+		return false, fmt.Errorf("failure getting guild: %w", err)
+	}
+
+	for _, vs := range g.VoiceStates {
+		if vs.UserID != botUserId && vs.ChannelID == channelId {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
