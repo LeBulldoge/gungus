@@ -85,19 +85,19 @@ func handlePlay(bot *Bot, intr *discordgo.InteractionCreate) {
 			stopHandlerCancel := createStopHandler(bot.session, pCancel, guildId)
 			go func(channelId string, botUserId string) {
 				tick := time.NewTicker(time.Minute)
+				defer tick.Stop()
 				for {
 					select {
 					case <-pCtx.Done():
+						return
 					case <-tick.C:
 						slog.Info("PlaybackService: checking if bot is last in server...")
 						if ok, err := isBotLastInChannel(bot.session, botUserId, guildId, channelId); err != nil {
 							slog.Error("PlaybackService: timeout ticker error", "err", err)
-							tick.Stop()
 							return
 						} else if ok {
 							slog.Info("PlaybackService: bot is last in server, cancelling playback")
 							pCancel()
-							tick.Stop()
 							return
 						} else {
 							slog.Info("PlaybackService: bot is not last in server, continuing playback")
