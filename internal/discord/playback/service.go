@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"os/exec"
 	"sync"
 
 	"github.com/ClintonCollins/dca"
 	"github.com/LeBulldoge/gungus/internal/youtube"
 	"github.com/bwmarrin/discordgo"
-	"golang.org/x/exp/slog"
 )
 
 type PlaybackService struct {

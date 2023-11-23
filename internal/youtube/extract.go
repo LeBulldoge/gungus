@@ -2,9 +2,9 @@ package youtube
 
 import (
 	"bufio"
+	"log/slog"
 	"os/exec"
 
-	"golang.org/x/exp/slog"
 	"golang.org/x/net/context"
 )
 
