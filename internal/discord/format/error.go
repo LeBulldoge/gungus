@@ -3,8 +3,9 @@ package format
 import (
 	"errors"
 
+	"log/slog"
+
 	"github.com/bwmarrin/discordgo"
-	"golang.org/x/exp/slog"
 )
 
 func CheckDiscordErrCode(err error, code int) bool {

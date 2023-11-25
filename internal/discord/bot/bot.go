@@ -19,30 +19,6 @@ func NewBot(token string, storage *database.Storage) (*Bot, error) {
 	return &Bot{Session: s, Storage: storage, PlaybackManager: playback.NewManager()}, err
 }
 
-//func (bot *Bot) AddHandlers(commandHandlers map[string]func(*Bot, *discordgo.InteractionCreate)) {
-//	bot.Session.AddHandler(func(_ *discordgo.Session, intr *discordgo.InteractionCreate) {
-//		switch intr.Type {
-//		case discordgo.InteractionApplicationCommand:
-//			fallthrough
-//		case discordgo.InteractionApplicationCommandAutocomplete:
-//			if h, ok := commandHandlers[intr.ApplicationCommandData().Name]; ok {
-//				h(bot, intr)
-//			}
-//		case discordgo.InteractionMessageComponent:
-//			customID := intr.MessageComponentData().CustomID
-//			if strings.HasPrefix(customID, "option") {
-//				handleVote(bot, intr)
-//			} else if strings.HasPrefix(customID, "movielist") {
-//				movieListPaginate(bot, intr)
-//			} else {
-//				slog.Error("unsupported component type", "id", intr.MessageComponentData().CustomID)
-//			}
-//		default:
-//			slog.Error("unsupported interaction", "intr", intr)
-//		}
-//	})
-//}
-
 func (bot *Bot) OpenConnection() error {
 	return bot.Session.Open()
 }
