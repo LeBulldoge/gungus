@@ -4,19 +4,17 @@ import (
 	"log/slog"
 
 	"github.com/LeBulldoge/gungus/internal/database"
-	"github.com/LeBulldoge/gungus/internal/discord/play/playback"
 	"github.com/bwmarrin/discordgo"
 )
 
 type Bot struct {
-	Session         *discordgo.Session
-	Storage         *database.Storage
-	PlaybackManager playback.PlaybackServiceManager
+	Session *discordgo.Session
+	Storage *database.Storage
 }
 
 func NewBot(token string, storage *database.Storage) (*Bot, error) {
 	s, err := discordgo.New("Bot " + token)
-	return &Bot{Session: s, Storage: storage, PlaybackManager: playback.NewManager()}, err
+	return &Bot{Session: s, Storage: storage}, err
 }
 
 func (bot *Bot) OpenConnection() error {
