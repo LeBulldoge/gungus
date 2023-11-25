@@ -3,6 +3,7 @@ package play
 import (
 	"log/slog"
 
+	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
 	"github.com/LeBulldoge/gungus/internal/discord/play/playback"
 	"github.com/bwmarrin/discordgo"
@@ -69,3 +70,5 @@ func (c *PlayCommand) AddLogger(logger *slog.Logger) {
 
 	c.logger = logger
 }
+
+func (c *PlayCommand) SetStorageConnection(*database.Storage) {}

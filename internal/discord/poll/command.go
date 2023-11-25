@@ -6,11 +6,14 @@ import (
 
 	"log/slog"
 
+	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
 	"github.com/bwmarrin/discordgo"
 )
 
 type PollCommand struct {
+	database.WithStorage
+
 	logger *slog.Logger
 }
 
@@ -68,12 +71,12 @@ func (c *PollCommand) Setup(bot *bot.Bot) error {
 			subData := intr.ApplicationCommandData().Options[0]
 			switch subData.Name {
 			case "start":
-				c.handlePoll(bot, intr)
+				c.handlePoll(sesh, intr)
 			}
 		case discordgo.InteractionMessageComponent:
 			customID := intr.MessageComponentData().CustomID
 			if strings.HasPrefix(customID, "option") {
-				c.handleVote(bot, intr)
+				c.handleVote(sesh, intr)
 			}
 		}
 	})

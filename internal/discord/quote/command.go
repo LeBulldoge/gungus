@@ -3,11 +3,14 @@ package quote
 import (
 	"log/slog"
 
+	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
 	"github.com/bwmarrin/discordgo"
 )
 
 type QuoteCommand struct {
+	database.WithStorage
+
 	logger *slog.Logger
 }
 
@@ -76,9 +79,9 @@ func (c *QuoteCommand) Setup(bot *bot.Bot) error {
 			subData := intr.ApplicationCommandData().Options[0]
 			switch subData.Name {
 			case "add":
-				c.addQuote(bot, intr)
+				c.addQuote(sesh, intr)
 			case "random":
-				c.randomQuote(bot, intr)
+				c.randomQuote(sesh, intr)
 			}
 		}
 	})

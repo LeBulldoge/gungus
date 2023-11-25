@@ -9,12 +9,11 @@ import (
 
 type Storage struct {
 	db *sqlighter.DB
+	mu sync.Mutex
 }
 
-var storageMutex sync.Mutex
-
 func New(configDir string) *Storage {
-	return &Storage{sqlighter.New(configDir, targetVersion, versionMap)}
+	return &Storage{db: sqlighter.New(configDir, targetVersion, versionMap)}
 }
 
 func (m *Storage) Open(ctx context.Context) error {
@@ -27,8 +26,20 @@ func (m *Storage) Close() error {
 
 func (m *Storage) Tx(ctx context.Context, f func(context.Context, *sqlighter.Tx) error) error {
 	return m.db.Tx(ctx, func(ctx context.Context, tx *sqlighter.Tx) error {
-		storageMutex.Lock()
-		defer storageMutex.Unlock()
+		m.mu.Lock()
+		defer m.mu.Unlock()
 		return f(ctx, tx)
 	})
+}
+
+type WithStorage struct {
+	storage *Storage
+}
+
+func (s *WithStorage) SetStorageConnection(storage *Storage) {
+	s.storage = storage
+}
+
+func (s *WithStorage) GetStorage() *Storage {
+	return s.storage
 }

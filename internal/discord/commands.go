@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
 	"github.com/LeBulldoge/gungus/internal/discord/movie"
 	"github.com/LeBulldoge/gungus/internal/discord/play"
@@ -15,6 +16,7 @@ import (
 type Command interface {
 	Setup(*bot.Bot) error
 	Cleanup(*bot.Bot) error
+	SetStorageConnection(*database.Storage)
 
 	GetSignature() []*discordgo.ApplicationCommand
 
@@ -48,6 +50,7 @@ func setupCommands(bot *bot.Bot) error {
 			),
 		)
 		cmd.AddLogger(logger)
+		cmd.SetStorageConnection(bot.Storage)
 		if err := cmd.Setup(bot); err != nil {
 			return fmt.Errorf("failed to setup command %s: %w", name, err)
 		}

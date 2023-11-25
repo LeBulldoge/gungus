@@ -5,11 +5,14 @@ import (
 
 	"log/slog"
 
+	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
 	"github.com/bwmarrin/discordgo"
 )
 
 type MovieCommand struct {
+	database.WithStorage
+
 	logger *slog.Logger
 }
 
@@ -116,20 +119,20 @@ func (c *MovieCommand) Setup(bot *bot.Bot) error {
 			subData := intr.ApplicationCommandData().Options[0]
 			switch subData.Name {
 			case "add":
-				c.addMovie(bot, intr)
+				c.addMovie(sesh, intr)
 			case "list":
-				c.movieList(bot, intr)
+				c.movieList(sesh, intr)
 			case "rate":
-				c.rateMovie(bot, intr)
+				c.rateMovie(sesh, intr)
 			case "remove":
-				c.movieDelete(bot, intr)
+				c.movieDelete(sesh, intr)
 			case "cast":
-				c.addUserAsCastMember(bot, intr)
+				c.addUserAsCastMember(sesh, intr)
 			}
 		case discordgo.InteractionMessageComponent:
 			customID := intr.MessageComponentData().CustomID
 			if strings.HasPrefix(customID, "movielist") {
-				c.movieListPaginate(bot, intr)
+				c.movieListPaginate(sesh, intr)
 			}
 		}
 	})
