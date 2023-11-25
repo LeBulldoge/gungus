@@ -3,6 +3,7 @@ package quote
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"math/rand"
@@ -18,9 +19,18 @@ func (c *QuoteCommand) addQuote(session *discordgo.Session, intr *discordgo.Inte
 	byUser := opt.Options[0].UserValue(session)
 	quoteText := opt.Options[1].StringValue()
 
+	log := c.logger.With(
+		slog.Group(
+			"add",
+			"byUser", byUser,
+			"text", quoteText,
+		),
+	)
+
 	err := quote.AddQuote(context.TODO(), c.GetStorage(), byUser.ID, quoteText, time.Now())
 	if err != nil {
-		format.DisplayInteractionError(session, intr.Interaction, fmt.Sprintf("failed saving a quote: %s", err))
+		log.Error("failed saving a quote", "err", err)
+		format.DisplayInteractionError(session, intr.Interaction, "Error saving a quote.")
 		return
 	}
 
@@ -32,9 +42,11 @@ func (c *QuoteCommand) addQuote(session *discordgo.Session, intr *discordgo.Inte
 		},
 	})
 	if err != nil {
-		c.logger.Error("error responding to interaction", intr.ID, err)
+		log.Error("error responding to interaction", intr.ID, err)
 		return
 	}
+
+	log.Info("quote added")
 }
 
 func (c *QuoteCommand) randomQuote(session *discordgo.Session, intr *discordgo.InteractionCreate) {
@@ -50,13 +62,22 @@ func (c *QuoteCommand) randomQuote(session *discordgo.Session, intr *discordgo.I
 		quotes, err = quote.GetQuotes(context.TODO(), c.GetStorage())
 	}
 
+	log := c.logger.With(
+		slog.Group(
+			"random",
+			"byUser", byUser,
+		),
+	)
+
 	if err != nil {
-		format.DisplayInteractionError(session, intr.Interaction, fmt.Sprintf("failed getting quotes: %s", err))
+		log.Error("failure getting quotes", "err", err)
+		format.DisplayInteractionError(session, intr.Interaction, "Error getting quotes.")
 		return
 	}
 
 	if len(quotes) == 0 {
-		format.DisplayInteractionError(session, intr.Interaction, "no quotes found")
+		log.Error("no quotes found", "err", err)
+		format.DisplayInteractionError(session, intr.Interaction, "No quotes found.")
 		return
 	}
 
@@ -66,10 +87,17 @@ func (c *QuoteCommand) randomQuote(session *discordgo.Session, intr *discordgo.I
 	}
 
 	selectedQuote := quotes[ind]
+	log = log.With(
+		slog.Group(
+			"random",
+			"selectedQuote", selectedQuote,
+		),
+	)
 	if byUser == nil {
 		byUser, err = session.User(selectedQuote.User)
 		if err != nil {
-			format.DisplayInteractionError(session, intr.Interaction, fmt.Sprintf("failure aquiring user data for user id: %s", selectedQuote.User))
+			log.Error("failure getting user data", "err", err)
+			format.DisplayInteractionError(session, intr.Interaction, "Error getting user data.")
 			return
 		}
 	}
@@ -85,7 +113,9 @@ func (c *QuoteCommand) randomQuote(session *discordgo.Session, intr *discordgo.I
 		},
 	})
 	if err != nil {
-		c.logger.Error("error responding to interaction", intr.ID, err)
+		log.Error("error responding to interaction", "err", err)
 		return
 	}
+
+	log.Info("successfully quoted")
 }

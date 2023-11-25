@@ -2,6 +2,7 @@ package format
 
 import (
 	"errors"
+	"strings"
 
 	"log/slog"
 
@@ -13,8 +14,23 @@ func CheckDiscordErrCode(err error, code int) bool {
 	return errors.As(err, &restErr) && restErr.Message != nil && restErr.Message.Code == code
 }
 
+func DisplayInteractionWithError(s *discordgo.Session, intr *discordgo.Interaction, content string, cause error) {
+	errStr := cause.Error()
+
+	var sb strings.Builder
+	sb.Grow(len(content) + len(errStr) + 6)
+	sb.WriteString(content)
+	sb.WriteRune('\n')
+	sb.WriteRune('\n')
+	sb.WriteRune('`')
+	sb.WriteString(errStr)
+	sb.WriteRune('`')
+	content = sb.String()
+
+	DisplayInteractionError(s, intr, content)
+}
+
 func DisplayInteractionError(s *discordgo.Session, intr *discordgo.Interaction, content string) {
-	slog.Error(content)
 	err := s.InteractionRespond(intr, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{

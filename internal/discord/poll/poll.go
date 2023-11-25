@@ -2,6 +2,7 @@ package poll
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/discord/format"
@@ -11,6 +12,7 @@ import (
 
 func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.InteractionCreate) {
 	opt := intr.ApplicationCommandData().Options[0]
+	pollTitle := opt.Options[0].StringValue()
 
 	var pollAnsText []string
 	for _, v := range opt.Options[1:] {
@@ -19,13 +21,22 @@ func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.Int
 		}
 	}
 
-	p := poll.New(opt.Options[0].StringValue())
+	logger := c.logger.With(
+		slog.Group(
+			"poll",
+			"title", pollTitle,
+			"answers", pollAnsText,
+		),
+	)
+
+	p := poll.New(pollTitle)
 
 	pollButtons := []discordgo.MessageComponent{}
 	for i := 0; i < len(pollAnsText); i++ {
 		spl := strings.Split(pollAnsText[i], ";")
 		if len(spl) < 2 {
-			format.DisplayInteractionError(session, intr.Interaction, "Incorrect formatting for option %d. <emoji> ; <description>")
+			logger.Error("incorrect formatting for poll option", "option", i)
+			format.DisplayInteractionError(session, intr.Interaction, fmt.Sprintf("Incorrect formatting for option %d. <emoji> ; <description>", i))
 			return
 		}
 
@@ -58,20 +69,22 @@ func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.Int
 		},
 	})
 	if err != nil {
-		c.logger.Error("error responding to interaction", intr.ID, err)
+		logger.Error("error responding to interaction", intr.ID, err)
 		return
 	}
 
 	msg, err := session.InteractionResponse(intr.Interaction)
 	if err != nil {
-		c.logger.Error("error collecting response for interaction", intr.ID, err)
+		logger.Error("error collecting response for interaction", intr.ID, err)
+		format.DisplayInteractionError(session, intr.Interaction, "Error saving poll in storage.")
 		return
 	}
 
 	p.ID = msg.ID
 	err = c.GetStorage().AddPoll(p)
 	if err != nil {
-		c.logger.Error("failed storing poll", "err", err)
+		logger.Error("failed storing poll", "err", err)
+		format.DisplayInteractionError(session, intr.Interaction, "Error saving poll in storage.")
 	}
 }
 
@@ -85,15 +98,26 @@ func (c *PollCommand) handleVote(session *discordgo.Session, intr *discordgo.Int
 	}
 
 	voteCustomID := intr.MessageComponentData().CustomID
+	logger := c.logger.With(
+		slog.Group(
+			"vote",
+			"customId", voteCustomID,
+			"pollId", intr.Message.ID,
+		),
+	)
+
 	err = c.GetStorage().CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
 	if err != nil {
-		c.logger.Error("error casting vote", "id", intr.Message.ID, "err", err)
+		logger.Error("error casting vote", "err", err)
+		format.DisplayInteractionError(session, intr.Interaction, "Error casting vote.")
 		return
 	}
 
 	p, err := c.GetStorage().GetPoll(intr.Message.ID)
 	if err != nil {
-		c.logger.Error("error getting poll", "id", intr.Message.ID, "err", err)
+		logger.Error("error getting poll", "err", err)
+		format.DisplayInteractionError(session, intr.Interaction, "Error getting poll from storage.")
+		return
 	}
 
 	chartStr := poll.PlotBarChart(p.Title, p.CountVotes())
@@ -102,6 +126,7 @@ func (c *PollCommand) handleVote(session *discordgo.Session, intr *discordgo.Int
 
 	_, err = session.ChannelMessageEditComplex(msg)
 	if err != nil {
-		c.logger.Error("error editing message", "id", intr.Message.ID, "err", err)
+		logger.Error("error editing message", "err", err)
+		format.DisplayInteractionError(session, intr.Interaction, "Error editing message.")
 	}
 }
