@@ -4,9 +4,12 @@ import (
 	"github.com/LeBulldoge/sqlighter/schema"
 )
 
-const targetVersion = 6
+const targetVersion = 7
 
 var versionMap = schema.VersionMap{
+	7: schema.Version{
+		Up: version7Up,
+	},
 	6: schema.Version{
 		Up: version6Up,
 	},
@@ -26,6 +29,32 @@ var versionMap = schema.VersionMap{
 		Up: version1Up,
 	},
 }
+
+// References Poll (id) -> References Polls(id)
+// How did this even work before???
+const version7Up = `
+PRAGMA foreign_keys=OFF;
+
+CREATE TABLE PollOptionsNew (
+  id      INTEGER NOT NULL,
+  poll_id TEXT    NOT NULL
+                  REFERENCES Polls (id) ON DELETE CASCADE,
+  name    TEXT    NOT NULL,
+  UNIQUE(poll_id, name),
+  PRIMARY KEY (
+      id AUTOINCREMENT
+  )
+);
+
+INSERT INTO PollOptionsNew
+SELECT * FROM PollOptions;
+
+DROP TABLE PollOptions;
+
+ALTER TABLE PollOptionsNew RENAME TO PollOptions;
+
+PRAGMA foreign_keys=ON;
+`
 
 const version6Up = `CREATE TABLE MovieCast (
     movieId   TEXT NOT NULL

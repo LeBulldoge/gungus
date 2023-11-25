@@ -1,4 +1,4 @@
-package discord
+package format
 
 import (
 	"strconv"
@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func timeToTimestamp(t time.Time) string {
+func TimeToTimestamp(t time.Time) string {
 	var sb strings.Builder
 	sb.WriteString("<t:")
 	sb.WriteString(strconv.FormatInt(t.Unix(), 10))
@@ -17,13 +17,13 @@ func timeToTimestamp(t time.Time) string {
 	return sb.String()
 }
 
-func isCustomEmoji(s string) bool {
+func IsCustomEmoji(s string) bool {
 	return s[0] == '<'
 }
 
-func emojiComponentFromString(s string) discordgo.ComponentEmoji {
+func EmojiComponentFromString(s string) discordgo.ComponentEmoji {
 	emoji := discordgo.ComponentEmoji{}
-	if isCustomEmoji(s) {
+	if IsCustomEmoji(s) {
 		s = s[1 : len(s)-2]
 		parts := strings.Split(s, ":")
 

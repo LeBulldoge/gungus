@@ -36,26 +36,14 @@ func Run(version string, build string) {
 	err := storage.Open(context.TODO())
 	if err != nil {
 		slog.Error("error while opening database", "err", err)
-	}
-
-	bot, err := discord.NewBot(*botToken, storage)
-	if err != nil {
-		slog.Error("error while creating session: %v", err)
-	}
-
-	err = bot.OpenConnection()
-	if err != nil {
-		slog.Error("error while opening session: %v", err)
 		return
 	}
 
-	err = bot.CreateCommands()
+	bot, err := discord.StartBot(*botToken, storage)
 	if err != nil {
-		slog.Error("error while creating commands: %v", err)
-		bot.Shutdown()
+		slog.Error("error while starting bot", "err", err)
 		return
 	}
-
 	defer bot.Shutdown()
 
 	stop := make(chan os.Signal, 1)

@@ -1,217 +1,56 @@
 package discord
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 
+	"github.com/LeBulldoge/gungus/internal/discord/bot"
+	"github.com/LeBulldoge/gungus/internal/discord/movie"
+	"github.com/LeBulldoge/gungus/internal/discord/play"
+	"github.com/LeBulldoge/gungus/internal/discord/poll"
+	"github.com/LeBulldoge/gungus/internal/discord/quote"
 	"github.com/bwmarrin/discordgo"
 )
 
-func buildPollCreateArgs() []*discordgo.ApplicationCommandOption {
-	res := []*discordgo.ApplicationCommandOption{
-		{
-			Name:        "title",
-			Description: "Title of the poll",
-			Type:        discordgo.ApplicationCommandOptionString,
-			Required:    true,
-		},
-	}
-	for i := 0; i < 6; i++ {
-		res = append(res, &discordgo.ApplicationCommandOption{
-			Name:        fmt.Sprintf("option_%d", i),
-			Description: fmt.Sprintf("Option number %d. Format: <emoji>;<description>", i),
-			Type:        discordgo.ApplicationCommandOptionString,
-			Required:    i < 2,
-		})
-	}
+type Command interface {
+	Setup(*bot.Bot) error
+	Cleanup(*bot.Bot) error
 
-	return res
+	GetSignature() []*discordgo.ApplicationCommand
+
+	AddLogger(*slog.Logger)
 }
 
-func checkDiscordErrCode(err error, code int) bool {
-	var restErr *discordgo.RESTError
-	return errors.As(err, &restErr) && restErr.Message != nil && restErr.Message.Code == code
+var commands = map[string]Command{
+	"play":  play.NewCommand(),
+	"movie": movie.NewCommand(),
+	"poll":  poll.NewCommand(),
+	"quote": quote.NewCommand(),
 }
 
-func displayInteractionError(s *discordgo.Session, intr *discordgo.Interaction, content string) {
-	slog.Error(content)
-	err := s.InteractionRespond(intr, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: content,
-			Flags:   discordgo.MessageFlagsEphemeral,
-		},
-	})
-	if err != nil {
-		if checkDiscordErrCode(err, discordgo.ErrCodeInteractionHasAlreadyBeenAcknowledged) {
-			_, err = s.FollowupMessageCreate(intr, false, &discordgo.WebhookParams{
-				Content: content,
-				Flags:   discordgo.MessageFlagsEphemeral,
-			})
+func setupCommands(bot *bot.Bot) error {
+	botUserId := bot.Session.State.User.ID
+	for name, cmd := range commands {
+		sigs := cmd.GetSignature()
+		for _, sig := range sigs {
+			regCmd, err := bot.Session.ApplicationCommandCreate(
+				botUserId, "", sig,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to register %s: %w", sig.Name, err)
+			}
+			slog.Info("command registered", "command.name", regCmd.Name)
 		}
-		if err != nil {
-			slog.Error("failed displaying error", "err", err)
+		logger := slog.Default().With(
+			slog.Group(
+				"command",
+				slog.String("name", name),
+			),
+		)
+		cmd.AddLogger(logger)
+		if err := cmd.Setup(bot); err != nil {
+			return fmt.Errorf("failed to setup command %s: %w", name, err)
 		}
 	}
+	return nil
 }
-
-var (
-	commands = []*discordgo.ApplicationCommand{
-		{
-			Name:        "poll",
-			Description: "Interact with polls",
-			Type:        discordgo.ChatApplicationCommand,
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "start",
-					Description: "Start a poll",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options:     buildPollCreateArgs(),
-				},
-			},
-		},
-		{
-			Name:        "quote",
-			Description: "Interact with polls",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "add",
-					Description: "Save a quote",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Name:        "by_user",
-							Description: "User attribution",
-							Type:        discordgo.ApplicationCommandOptionUser,
-							Required:    true,
-						},
-						{
-							Name:        "text",
-							Description: "Quote text",
-							Type:        discordgo.ApplicationCommandOptionString,
-							Required:    true,
-						},
-					},
-				},
-				{
-					Name:        "random",
-					Description: "Get a random quote by a particular user",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Name:        "by_user",
-							Description: "User to get a quote from",
-							Type:        discordgo.ApplicationCommandOptionUser,
-						},
-					},
-				},
-			},
-		},
-		{
-			Name:        "movie",
-			Description: "Interact with movies",
-			Type:        discordgo.ChatApplicationCommand,
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "add",
-					Description: "Add a movie to the list",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Name:         "title",
-							Description:  "Title of the movie",
-							Type:         discordgo.ApplicationCommandOptionString,
-							Required:     true,
-							Autocomplete: true,
-						},
-					},
-				},
-				{
-					Name:        "list",
-					Description: "Browse the movie list",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-				},
-				{
-					Name:        "rate",
-					Description: "Rate movie in the list",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Name:         "title",
-							Description:  "Title of the movie",
-							Type:         discordgo.ApplicationCommandOptionString,
-							Required:     true,
-							Autocomplete: true,
-						},
-						{
-							Name:        "rating",
-							Description: "Rating of the movie from -10.0 to 10.0",
-							Type:        discordgo.ApplicationCommandOptionNumber,
-							Required:    true,
-						},
-					},
-				},
-				{
-					Name:        "cast",
-					Description: "Tag yourself in the movie",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Name:         "title",
-							Description:  "Title of the movie",
-							Type:         discordgo.ApplicationCommandOptionString,
-							Required:     true,
-							Autocomplete: true,
-						},
-						{
-							Name:         "character",
-							Description:  "Name of the character",
-							Type:         discordgo.ApplicationCommandOptionString,
-							Required:     true,
-							Autocomplete: true,
-						},
-					},
-				},
-				{
-					Name:        "remove",
-					Description: "Remove a movie from the list",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Name:         "title",
-							Description:  "Title of the movie",
-							Type:         discordgo.ApplicationCommandOptionString,
-							Required:     true,
-							Autocomplete: true,
-						},
-					},
-				},
-			},
-		},
-		{
-			Name:        "play",
-			Description: "Play a youtube video",
-			Type:        discordgo.ChatApplicationCommand,
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "link",
-					Description: "Link to the video",
-					Type:        discordgo.ApplicationCommandOptionString,
-					Required:    true,
-				},
-			},
-		},
-		{
-			Name:        "stop",
-			Description: "Stop audio playback",
-			Type:        discordgo.ChatApplicationCommand,
-		},
-	}
-	commandHandlers = map[string]func(bot *Bot, i *discordgo.InteractionCreate){
-		"movie": handleMovie,
-		"poll":  handlePoll,
-		"quote": handleQuote,
-		"play":  handlePlay,
-	}
-)
