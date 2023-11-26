@@ -113,12 +113,6 @@ func (s *PlaybackService) ChannelId() string {
 	return s.vc.ChannelID
 }
 
-func (s *PlaybackService) UserId() string {
-	s.RLock()
-	defer s.RUnlock()
-	return s.vc.UserID
-}
-
 func playAudioFromUrl(ctx context.Context, url string, vc *discordgo.VoiceConnection) error {
 	ytdlp := exec.Command(
 		"yt-dlp",

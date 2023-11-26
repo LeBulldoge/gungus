@@ -165,7 +165,6 @@ func embedFromMovie(session *discordgo.Session, guildId string, movie movienight
 }
 
 func (c *MovieCommand) movieList(session *discordgo.Session, intr *discordgo.InteractionCreate) {
-
 	movies, err := movienight.GetMovies(context.TODO(), c.GetStorage())
 	log := c.logger.With(
 		slog.Group(
@@ -310,7 +309,7 @@ func (c *MovieCommand) movieListPaginate(session *discordgo.Session, intr *disco
 	embed, err := embedFromMovie(session, intr.GuildID, movie)
 	if err != nil {
 		log.Error("error creating embed for movie", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error displaying movie.")
+		format.DisplayInteractionWithError(session, intr.Interaction, "Error displaying movie.", err)
 		return
 	}
 	embed.Author = &discordgo.MessageEmbedAuthor{
