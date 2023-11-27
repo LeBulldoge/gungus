@@ -29,10 +29,11 @@ func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
 			Type:        discordgo.ChatApplicationCommand,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Name:        "link",
-					Description: "Link to the video",
-					Type:        discordgo.ApplicationCommandOptionString,
-					Required:    true,
+					Name:         "search",
+					Description:  "Youtube link or search query",
+					Type:         discordgo.ApplicationCommandOptionString,
+					Required:     true,
+					Autocomplete: true,
 				},
 			},
 		},
@@ -46,7 +47,7 @@ func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
 
 func (c *PlayCommand) Setup(bot *bot.Bot) error {
 	bot.Session.AddHandler(func(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
-		if intr.Type != discordgo.InteractionApplicationCommand {
+		if intr.Type != discordgo.InteractionApplicationCommand && intr.Type != discordgo.InteractionApplicationCommandAutocomplete {
 			return
 		}
 		opt := intr.ApplicationCommandData()

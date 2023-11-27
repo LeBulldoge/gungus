@@ -20,6 +20,59 @@ type YoutubeDataResult struct {
 	Error error
 }
 
+func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataResult) error {
+	ytdlp := exec.Command(
+		"yt-dlp",
+		"ytsearch10:"+query,
+		"--get-url",
+		"--get-title",
+		"--flat-playlist",
+	)
+
+	stdout, err := ytdlp.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := ytdlp.Start(); err != nil {
+		return err
+	}
+
+	go func() {
+		defer close(output)
+		res := YoutubeDataResult{}
+
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			res.Data.Title = scanner.Text()
+
+			if scanner.Scan() {
+				res.Data.Url = scanner.Text()
+			}
+
+			select {
+			case <-ctx.Done():
+				slog.Info("SearchYoutube canceled via context", "query", query)
+				return
+			case output <- res:
+			}
+		}
+		slog.Info("SearchYoutube finished", "query", query)
+
+		if err := ytdlp.Wait(); err != nil {
+			res.Error = err
+			select {
+			case <-ctx.Done():
+				slog.Info("SearchYoutube canceled via context", "query", query)
+				return
+			case output <- res:
+			}
+		}
+	}()
+
+	return nil
+}
+
 func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeDataResult) error {
 	ytdlp := exec.Command(
 		"yt-dlp",
@@ -41,6 +94,8 @@ func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeD
 	}
 
 	go func() {
+		defer close(output)
+
 		res := YoutubeDataResult{}
 
 		scanner := bufio.NewScanner(stdout)

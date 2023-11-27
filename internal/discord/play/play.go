@@ -15,7 +15,67 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+func autocompleteResponse(choices []*discordgo.ApplicationCommandOptionChoice) *discordgo.InteractionResponse {
+	return &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: choices,
+		},
+	}
+}
+
+func (c *PlayCommand) handlePlayAutocomplete(session *discordgo.Session, intr *discordgo.InteractionCreate) {
+	opt := intr.ApplicationCommandData()
+	queryString := opt.Options[0].StringValue()
+	log := c.logger.WithGroup("play/autocomplete").With("query", queryString)
+
+	choices := []*discordgo.ApplicationCommandOptionChoice{}
+	defer func() {
+		log.Info("choices collected", "count", len(choices))
+		if err := session.InteractionRespond(intr.Interaction, autocompleteResponse(choices)); err != nil {
+			log.Error("failed to respond", "err", err)
+		}
+	}()
+
+	if len(queryString) < 3 {
+		log.Info("search string is less than 3")
+		return
+	}
+
+	if _, err := url.ParseRequestURI(queryString); err == nil {
+		log.Info("skipping autocomplete")
+		return
+	}
+
+	log.Info("searching for videos")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	ytDataChan := make(chan youtube.YoutubeDataResult, 10)
+	if err := youtube.SearchYoutube(ctx, queryString, ytDataChan); err != nil {
+		log.Error("error getting youtube data", "err", err)
+		return
+	}
+
+	for ytData := range ytDataChan {
+		if ytData.Error != nil {
+			log.Error("failure getting result from SearchYoutube", "err", ytData.Error)
+			continue
+		}
+		video := ytData.Data
+
+		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
+			Name:  video.Title,
+			Value: video.Url,
+		})
+	}
+}
+
 func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.InteractionCreate) {
+	if intr.Type == discordgo.InteractionApplicationCommandAutocomplete {
+		c.handlePlayAutocomplete(session, intr)
+		return
+	}
 	opt := intr.ApplicationCommandData()
 	queryString := opt.Options[0].StringValue()
 
@@ -136,7 +196,7 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 
 	for ytData := range ytDataChan {
 		if ytData.Error != nil {
-			log.Error("failure getting url from GetYoutubeData", "err", err)
+			log.Error("failure getting url from GetYoutubeData", "err", ytData.Error)
 			continue
 		}
 		video := ytData.Data
