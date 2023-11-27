@@ -161,7 +161,7 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 						return
 					case <-tick.C:
 						log.Info("PlaybackService: checking if bot is last in server...")
-						if ok, err := c.isBotLastInChannel(session, guildId, channelId); err != nil {
+						if ok, err := c.isBotLastInVoiceChannel(session, guildId, channelId); err != nil {
 							log.Error("PlaybackService: timeout ticker error", "err", err)
 							return
 						} else if ok {
@@ -271,8 +271,8 @@ func (c *PlayCommand) getUserChannelId(sesh *discordgo.Session, userId string, g
 	c.logger.Info("guild acquired", "guildId", g.ID, "name", g.Name)
 
 	for _, vs := range g.VoiceStates {
-		c.logger.Info("user in channel", "usr", vs.UserID, "chn", vs.ChannelID)
 		if vs.UserID == userId {
+			c.logger.Info("user found in channel", "usr", vs.UserID, "chn", vs.ChannelID)
 			channelId = vs.ChannelID
 			break
 		}
@@ -284,7 +284,7 @@ func (c *PlayCommand) getUserChannelId(sesh *discordgo.Session, userId string, g
 	return channelId, nil
 }
 
-func (c *PlayCommand) isBotLastInChannel(sesh *discordgo.Session, guildId string, channelId string) (bool, error) {
+func (c *PlayCommand) isBotLastInVoiceChannel(sesh *discordgo.Session, guildId string, channelId string) (bool, error) {
 	g, err := sesh.State.Guild(guildId)
 	if err != nil {
 		return false, fmt.Errorf("failure getting guild: %w", err)
