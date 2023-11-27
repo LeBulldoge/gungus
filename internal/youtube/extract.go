@@ -2,8 +2,10 @@ package youtube
 
 import (
 	"bufio"
+	"errors"
 	"log/slog"
 	"os/exec"
+	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/os"
 	"golang.org/x/net/context"
@@ -25,8 +27,7 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 	ytdlp := exec.Command(
 		"yt-dlp",
 		"ytsearch5:"+query,
-		"--get-url",
-		"--get-title",
+		"--print", "%(url)s;%(title)s",
 		"--flat-playlist",
 		"--lazy-playlist",
 		"--ies", "youtube:search",
@@ -46,11 +47,21 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 	go func() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
-			res.Data.Title = scanner.Text()
-
-			if scanner.Scan() {
-				res.Data.Url = scanner.Text()
+			parts := strings.Split(scanner.Text(), ";")
+			if len(parts) < 2 {
+				res.Error = errors.New("failed parsing youtube result: " + scanner.Text())
+				select {
+				case <-ctx.Done():
+					slog.Info("SearchYoutube canceled via context", "query", query)
+					close(output)
+					return
+				case output <- res:
+				}
+				continue
 			}
+
+			res.Data.Url = parts[0]
+			res.Data.Title = parts[1]
 
 			select {
 			case <-ctx.Done():

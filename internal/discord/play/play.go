@@ -30,7 +30,7 @@ func (c *PlayCommand) handlePlayAutocomplete(session *discordgo.Session, intr *d
 	queryString := opt.Options[0].StringValue()
 	log := c.logger.With(slog.Group("play/autocomplete", "query", queryString))
 
-	choices := []*discordgo.ApplicationCommandOptionChoice{}
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, 5)
 	defer func() {
 		if err := session.InteractionRespond(intr.Interaction, autocompleteResponse(choices)); err != nil {
 			log.Error("failed to respond", "err", err)
