@@ -48,7 +48,7 @@ func (c *PlayCommand) handlePlayAutocomplete(session *discordgo.Session, intr *d
 	}
 
 	log.Info("searching for videos")
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	ytDataChan := make(chan youtube.YoutubeDataResult, 5)

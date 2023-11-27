@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os/exec"
 
+	"github.com/LeBulldoge/gungus/internal/os"
 	"golang.org/x/net/context"
 )
 
@@ -27,6 +28,9 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 		"--get-url",
 		"--get-title",
 		"--flat-playlist",
+		"--lazy-playlist",
+		"--ies", "youtube:search",
+		"--cache-dir", os.CachePath("ytdlp"),
 	)
 
 	stdout, err := ytdlp.StdoutPipe()
@@ -39,7 +43,6 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 	}
 
 	go func() {
-		defer close(output)
 		res := YoutubeDataResult{}
 
 		scanner := bufio.NewScanner(stdout)
@@ -53,20 +56,18 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 			select {
 			case <-ctx.Done():
 				slog.Info("SearchYoutube canceled via context", "query", query)
+				close(output)
 				return
 			case output <- res:
 			}
 		}
 		slog.Info("SearchYoutube finished", "query", query)
 
+		close(output)
+
 		if err := ytdlp.Wait(); err != nil {
-			res.Error = err
-			select {
-			case <-ctx.Done():
-				slog.Info("SearchYoutube canceled via context", "query", query)
-				return
-			case output <- res:
-			}
+			slog.Error("SearchYoutube error on wait", "err", err)
+			return
 		}
 	}()
 
@@ -82,6 +83,7 @@ func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeD
 		"--get-title",
 		"--get-thumbnail",
 		"--get-duration",
+		"--cache-dir", os.CachePath("ytdlp"),
 	)
 
 	stdout, err := ytdlp.StdoutPipe()

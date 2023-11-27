@@ -11,6 +11,10 @@ func SetCustomConfigDir(dir string) {
 	customConfigDir = dir
 }
 
+func CachePath(subDir string) string {
+	return filepath.Join(ConfigPath(), "cache", subDir)
+}
+
 func ConfigPath() string {
 	var configDir string
 	if len(customConfigDir) > 0 {
