@@ -1,6 +1,7 @@
 package playback
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/ClintonCollins/dca"
+	"github.com/LeBulldoge/gungus/internal/os"
 	"github.com/LeBulldoge/gungus/internal/youtube"
 	"github.com/bwmarrin/discordgo"
 )
@@ -115,6 +117,7 @@ func playAudioFromUrl(ctx context.Context, url string, vc *discordgo.VoiceConnec
 	ytdlp := exec.Command(
 		"yt-dlp",
 		url,
+		"--cache-dir", os.CachePath("ytdlp"),
 		"-o", "-",
 	)
 
@@ -152,6 +155,16 @@ func playAudioFromUrl(ctx context.Context, url string, vc *discordgo.VoiceConnec
 		return err
 	}
 	defer ytdlp.Wait()
+
+	go func() {
+		sc := bufio.NewScanner(stderr)
+		for sc.Scan() {
+			slog.Info("ytdlp stderr", "output", sc.Text())
+		}
+		if err := sc.Err(); err != nil {
+			slog.Error("ytdlp stderr reader error", "err", err)
+		}
+	}()
 
 	select {
 	case <-ctx.Done():
