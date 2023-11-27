@@ -51,7 +51,7 @@ func (c *PlayCommand) handlePlayAutocomplete(session *discordgo.Session, intr *d
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	ytDataChan := make(chan youtube.YoutubeDataResult, 10)
+	ytDataChan := make(chan youtube.YoutubeDataResult, 5)
 	if err := youtube.SearchYoutube(ctx, queryString, ytDataChan); err != nil {
 		log.Error("error getting youtube data", "err", err)
 		return

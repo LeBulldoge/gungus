@@ -23,7 +23,7 @@ type YoutubeDataResult struct {
 func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataResult) error {
 	ytdlp := exec.Command(
 		"yt-dlp",
-		"ytsearch10:"+query,
+		"ytsearch5:"+query,
 		"--get-url",
 		"--get-title",
 		"--flat-playlist",
