@@ -16,8 +16,7 @@ COPY ./build/gungus.$TARGETOS.$TARGETARCH ./gungus
 COPY --from=mwader/static-ffmpeg:6.1 /ffmpeg /usr/local/bin/
 COPY --from=mwader/static-ffmpeg:6.1 /ffprobe /usr/local/bin/
 
-RUN apk add ca-certificates yt-dlp \
-    && rm -rf /var/cache/*
+RUN apk add --no-cache yt-dlp-core
 
 USER $UID
 ENTRYPOINT ["./gungus", "-config", "/config"]
