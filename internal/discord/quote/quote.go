@@ -30,7 +30,7 @@ func (c *QuoteCommand) addQuote(session *discordgo.Session, intr *discordgo.Inte
 	err := quote.AddQuote(context.TODO(), c.GetStorage(), byUser.ID, quoteText, time.Now())
 	if err != nil {
 		log.Error("failed saving a quote", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error saving a quote.")
+		format.DisplayInteractionError(session, intr, "Error saving a quote.")
 		return
 	}
 
@@ -71,13 +71,13 @@ func (c *QuoteCommand) randomQuote(session *discordgo.Session, intr *discordgo.I
 
 	if err != nil {
 		log.Error("failure getting quotes", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error getting quotes.")
+		format.DisplayInteractionError(session, intr, "Error getting quotes.")
 		return
 	}
 
 	if len(quotes) == 0 {
 		log.Error("no quotes found", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "No quotes found.")
+		format.DisplayInteractionError(session, intr, "No quotes found.")
 		return
 	}
 
@@ -97,7 +97,7 @@ func (c *QuoteCommand) randomQuote(session *discordgo.Session, intr *discordgo.I
 		byUser, err = session.User(selectedQuote.User)
 		if err != nil {
 			log.Error("failure getting user data", "err", err)
-			format.DisplayInteractionError(session, intr.Interaction, "Error getting user data.")
+			format.DisplayInteractionError(session, intr, "Error getting user data.")
 			return
 		}
 	}

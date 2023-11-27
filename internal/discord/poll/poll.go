@@ -36,7 +36,7 @@ func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.Int
 		spl := strings.Split(pollAnsText[i], ";")
 		if len(spl) < 2 {
 			logger.Error("incorrect formatting for poll option", "option", i)
-			format.DisplayInteractionError(session, intr.Interaction, fmt.Sprintf("Incorrect formatting for option %d. <emoji> ; <description>", i))
+			format.DisplayInteractionError(session, intr, fmt.Sprintf("Incorrect formatting for option %d. <emoji> ; <description>", i))
 			return
 		}
 
@@ -76,7 +76,7 @@ func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.Int
 	msg, err := session.InteractionResponse(intr.Interaction)
 	if err != nil {
 		logger.Error("error collecting response for interaction", intr.ID, err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error saving poll in storage.")
+		format.DisplayInteractionError(session, intr, "Error saving poll in storage.")
 		return
 	}
 
@@ -84,7 +84,7 @@ func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.Int
 	err = c.GetStorage().AddPoll(p)
 	if err != nil {
 		logger.Error("failed storing poll", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error saving poll in storage.")
+		format.DisplayInteractionError(session, intr, "Error saving poll in storage.")
 	}
 }
 
@@ -109,14 +109,14 @@ func (c *PollCommand) handleVote(session *discordgo.Session, intr *discordgo.Int
 	err = c.GetStorage().CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
 	if err != nil {
 		logger.Error("error casting vote", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error casting vote.")
+		format.DisplayInteractionError(session, intr, "Error casting vote.")
 		return
 	}
 
 	p, err := c.GetStorage().GetPoll(intr.Message.ID)
 	if err != nil {
 		logger.Error("error getting poll", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error getting poll from storage.")
+		format.DisplayInteractionError(session, intr, "Error getting poll from storage.")
 		return
 	}
 
@@ -127,6 +127,6 @@ func (c *PollCommand) handleVote(session *discordgo.Session, intr *discordgo.Int
 	_, err = session.ChannelMessageEditComplex(msg)
 	if err != nil {
 		logger.Error("error editing message", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error editing message.")
+		format.DisplayInteractionError(session, intr, "Error editing message.")
 	}
 }

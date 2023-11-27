@@ -38,7 +38,7 @@ func (s *PlaybackService) EnqueueVideo(video youtube.YoutubeData) error {
 
 func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 	if s.IsRunning() {
-		return errors.New("PlaybackService: already running")
+		return errors.New("playback service is already running")
 	}
 
 	s.setRunning(true)
@@ -47,8 +47,6 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 	wg.Done()
 
 	for video := range s.queue {
-		slog.Info("PlaybackService: received video", "guild", s.vc.GuildID, "video", video.Title)
-
 		s.Lock()
 		err := s.vc.Speaking(true)
 		s.Unlock()
@@ -56,7 +54,7 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 			return err
 		}
 
-		slog.Info("PlaybackService: currently speaking", "guild", s.vc.GuildID, "video", video.Title)
+		slog.Info("PlaybackService: currently playing", "guild", s.vc.GuildID, "video", video.Title)
 		err = playAudioFromUrl(ctx, video.Url, s.vc)
 		if err != nil {
 			return err
@@ -68,7 +66,7 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 		if err != nil {
 			return err
 		}
-		slog.Info("PlaybackService: done streaming", "guild", s.vc.GuildID, "video", video.Title)
+		slog.Info("PlaybackService: done playing", "guild", s.vc.GuildID, "video", video.Title)
 
 		if len(s.queue) == 0 {
 			slog.Info("PlaybackService: queue is empty", "guild", s.vc.GuildID)

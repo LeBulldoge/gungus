@@ -24,12 +24,12 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 	var videoUrl string
 	if url, err := url.ParseRequestURI(queryString); err != nil {
 		log.Error("error parsing url", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error parsing url!")
+		format.DisplayInteractionError(session, intr, "Error parsing url!")
 		return
 	} else {
 		if url.Host != "www.youtube.com" {
 			log.Error("error parsing url: incorrect domain")
-			format.DisplayInteractionError(session, intr.Interaction, "Domain must be `www.youtube.com`, not `"+url.Host+"`")
+			format.DisplayInteractionError(session, intr, "Domain must be `www.youtube.com`, not `"+url.Host+"`")
 			return
 		}
 		videoUrl = url.String()
@@ -43,7 +43,7 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 	ytDataChan := make(chan youtube.YoutubeDataResult)
 	if err := youtube.GetYoutubeData(ctx, videoUrl, ytDataChan); err != nil {
 		log.Error("error getting youtube data", "err", err)
-		format.DisplayInteractionError(session, intr.Interaction, "Error getting video data from youtube. See the log for details.")
+		format.DisplayInteractionError(session, intr, "Error getting video data from youtube. See the log for details.")
 		return
 	}
 
@@ -65,21 +65,21 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 		channelId, err := c.getUserChannelId(session, intr.Member.User.ID, intr.GuildID)
 		if err != nil {
 			log.Error("failure getting channel id", "err", err)
-			format.DisplayInteractionError(session, intr.Interaction, "You must be in a voice channel to use this command.")
+			format.DisplayInteractionError(session, intr, "You must be in a voice channel to use this command.")
 			return
 		}
 
 		voice, err := session.ChannelVoiceJoin(intr.GuildID, channelId, false, true)
 		if err != nil {
 			log.Error("failure joining voice channel", "channelId", channelId, "err", err)
-			format.DisplayInteractionError(session, intr.Interaction, "Error joining voice channel.")
+			format.DisplayInteractionError(session, intr, "Error joining voice channel.")
 			return
 		}
 
 		playbackService = playback.NewPlaybackService(voice)
 		if err := c.playbackManager.Add(intr.GuildID, playbackService); err != nil {
 			log.Error("error adding a new playback service", "guildId", intr.GuildID, "err", err)
-			format.DisplayInteractionError(session, intr.Interaction, "Error starting playback.")
+			format.DisplayInteractionError(session, intr, "Error starting playback.")
 			return
 		}
 	}
@@ -192,7 +192,7 @@ func createStopHandler(sesh *discordgo.Session, cancel context.CancelFunc, guild
 			},
 		})
 		if err != nil {
-			format.DisplayInteractionError(s, i.Interaction, "Failure responding to interaction. See the log for details.")
+			format.DisplayInteractionError(s, i, "Failure responding to interaction. See the log for details.")
 		}
 
 		cancel()
