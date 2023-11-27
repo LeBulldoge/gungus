@@ -42,9 +42,8 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 		return err
 	}
 
+	res := YoutubeDataResult{}
 	go func() {
-		res := YoutubeDataResult{}
-
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			res.Data.Title = scanner.Text()

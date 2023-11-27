@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -27,14 +28,14 @@ func autocompleteResponse(choices []*discordgo.ApplicationCommandOptionChoice) *
 func (c *PlayCommand) handlePlayAutocomplete(session *discordgo.Session, intr *discordgo.InteractionCreate) {
 	opt := intr.ApplicationCommandData()
 	queryString := opt.Options[0].StringValue()
-	log := c.logger.WithGroup("play/autocomplete").With("query", queryString)
+	log := c.logger.With(slog.Group("play/autocomplete", "query", queryString))
 
 	choices := []*discordgo.ApplicationCommandOptionChoice{}
 	defer func() {
-		log.Info("choices collected", "count", len(choices))
 		if err := session.InteractionRespond(intr.Interaction, autocompleteResponse(choices)); err != nil {
 			log.Error("failed to respond", "err", err)
 		}
+		log.Info("choices collected", "count", len(choices))
 	}()
 
 	if len(queryString) < 3 {
@@ -48,7 +49,7 @@ func (c *PlayCommand) handlePlayAutocomplete(session *discordgo.Session, intr *d
 	}
 
 	log.Info("searching for videos")
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2900*time.Millisecond)
 	defer cancel()
 
 	ytDataChan := make(chan youtube.YoutubeDataResult, 5)
