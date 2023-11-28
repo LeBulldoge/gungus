@@ -36,3 +36,15 @@ func EmojiComponentFromString(s string) discordgo.ComponentEmoji {
 
 	return emoji
 }
+
+func GetMemberDisplayName(member *discordgo.Member) string {
+	var displayName string
+	if len(member.Nick) > 0 {
+		displayName = member.Nick
+	} else if len(member.User.Token) > 0 {
+		displayName = member.User.Token
+	} else {
+		displayName = member.User.Username
+	}
+	return displayName
+}

@@ -3,8 +3,12 @@ package poll
 import (
 	"fmt"
 	"log/slog"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/LeBulldoge/gungus/internal/discord/embed"
 	"github.com/LeBulldoge/gungus/internal/discord/format"
 	"github.com/LeBulldoge/gungus/internal/poll"
 	"github.com/bwmarrin/discordgo"
@@ -57,10 +61,12 @@ func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.Int
 		pollButtons = append(pollButtons, btn)
 	}
 
+	pollEmbed := buildEmbedFromPoll(p)
+
 	err := session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: poll.PlotBarChart(p.Title, p.CountVotes()),
+			Embeds: []*discordgo.MessageEmbed{pollEmbed},
 			Components: []discordgo.MessageComponent{
 				discordgo.ActionsRow{
 					Components: pollButtons,
@@ -120,13 +126,63 @@ func (c *PollCommand) handleVote(session *discordgo.Session, intr *discordgo.Int
 		return
 	}
 
-	chartStr := poll.PlotBarChart(p.Title, p.CountVotes())
-	msg := discordgo.NewMessageEdit(intr.ChannelID, intr.Message.ID)
-	msg.Content = &chartStr
-
-	_, err = session.ChannelMessageEditComplex(msg)
+	pollEmbed := buildEmbedFromPoll(p)
+	_, err = session.ChannelMessageEditEmbed(intr.ChannelID, intr.Message.ID, pollEmbed)
 	if err != nil {
 		logger.Error("error editing message", "err", err)
 		format.DisplayInteractionError(session, intr, "Error editing message.")
 	}
+}
+
+const (
+	empty = "⬛"
+	full  = "🔲"
+)
+
+func buildEmbedFromPoll(p poll.Poll) *discordgo.MessageEmbed {
+	e := embed.NewEmbed().
+		SetTitle(p.Title)
+
+	votes := p.CountVotes()
+
+	total := 0
+	options := make([]string, 0, len(votes))
+	for option, count := range votes {
+		total += count
+		options = append(options, option)
+	}
+
+	sort.Strings(options)
+
+	var sb strings.Builder
+	for _, option := range options {
+		count := votes[option]
+
+		res := (float64(count) / float64(total)) * 10
+		for i := 0; i < 10; i++ {
+			if i < int(res) {
+				sb.WriteString(full)
+			} else {
+				sb.WriteString(empty)
+			}
+		}
+
+		sb.WriteRune(' ')
+		sb.WriteString(strconv.Itoa(count))
+		sb.WriteRune('/')
+		sb.WriteString(strconv.Itoa(total))
+
+		emoji := strings.Split(option, "_")[2]
+		e.AddField(emoji, sb.String())
+
+		sb.Reset()
+	}
+
+	sb.WriteString("Total votes: ")
+	sb.WriteString(strconv.Itoa(total))
+
+	e.SetFooter(sb.String(), "")
+	e.SetTimestamp(time.Now().Format(time.RFC3339))
+
+	return e.MessageEmbed
 }

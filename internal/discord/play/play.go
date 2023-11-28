@@ -10,6 +10,7 @@ import (
 
 	"net/url"
 
+	"github.com/LeBulldoge/gungus/internal/discord/embed"
 	"github.com/LeBulldoge/gungus/internal/discord/format"
 	"github.com/LeBulldoge/gungus/internal/discord/play/playback"
 	"github.com/LeBulldoge/gungus/internal/youtube"
@@ -210,20 +211,14 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 
 		log.Info("added video to playbackService", "video", video.Title)
 
-		embed := &discordgo.MessageEmbed{
-			Author: &discordgo.MessageEmbedAuthor{
-				Name: "Added to queue",
-			},
-			Title: video.Title,
-			URL:   videoUrl,
-			Thumbnail: &discordgo.MessageEmbedThumbnail{
-				URL: video.Thumbnail,
-			},
-			Description: video.Length,
-			Footer: &discordgo.MessageEmbedFooter{
-				Text: fmt.Sprintf("Queue length: %d", playbackService.Count()),
-			},
-		}
+		embed := embed.NewEmbed().
+			SetAuthor("Added to queue").
+			SetTitle(video.Title).
+			SetUrl(video.Url).
+			SetThumbnail(video.Thumbnail).
+			SetDescription(video.Length).
+			SetFooter(fmt.Sprintf("Queue length: %d", playbackService.Count()), "").
+			MessageEmbed
 
 		_, err = session.FollowupMessageCreate(intr.Interaction, false, &discordgo.WebhookParams{
 			Embeds: []*discordgo.MessageEmbed{embed},

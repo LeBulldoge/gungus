@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LeBulldoge/gungus/internal/discord/embed"
 	"github.com/LeBulldoge/gungus/internal/discord/format"
 	movienight "github.com/LeBulldoge/gungus/internal/movie_night"
 	"github.com/bwmarrin/discordgo"
@@ -93,75 +94,49 @@ func (c *MovieCommand) addMovie(session *discordgo.Session, intr *discordgo.Inte
 	}
 }
 
-func getMemberDisplayName(member *discordgo.Member) string {
-	var displayName string
-	if len(member.Nick) > 0 {
-		displayName = member.Nick
-	} else if len(member.User.Token) > 0 {
-		displayName = member.User.Token
-	} else {
-		displayName = member.User.Username
-	}
-	return displayName
-}
-
 func embedFromMovie(session *discordgo.Session, guildId string, movie movienight.Movie) (*discordgo.MessageEmbed, error) {
 	user, err := session.GuildMember(guildId, movie.AddedBy)
 	if err != nil {
 		return nil, err
 	}
 
-	fields := []*discordgo.MessageEmbedField{}
+	embed := embed.NewEmbed()
+
 	if len(movie.Cast) > 0 {
-		fields = append(fields, &discordgo.MessageEmbedField{
-			Name: "--- Cast ---",
-		})
+		embed.AddField("--- Cast ---", "")
 		for _, castMember := range movie.Cast {
 			user, err := session.GuildMember(guildId, castMember.UserID)
 			if err != nil {
 				return nil, err
 			}
-			fields = append(fields, &discordgo.MessageEmbedField{
-				Name:   castMember.Character,
-				Value:  "by " + getMemberDisplayName(user),
-				Inline: true,
-			})
+			embed.AddInlineField(castMember.Character, "by "+format.GetMemberDisplayName(user))
 		}
 	}
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:  "\u200b",
-		Value: "\u200b",
-	})
+	embed.AddField("\u200b", "\u200b")
 	if len(movie.Ratings) > 0 {
-		fields = append(fields, &discordgo.MessageEmbedField{
-			Name: "--- Ratings ---",
-		})
+		embed.AddField("--- Ratings ---", "")
 		for _, rating := range movie.Ratings {
 			user, err := session.GuildMember(guildId, rating.UserID)
 			if err != nil {
 				return nil, err
 			}
-			fields = append(fields, &discordgo.MessageEmbedField{
-				Name:   strconv.FormatFloat(rating.Rating, 'f', 2, 64),
-				Value:  "by " + getMemberDisplayName(user),
-				Inline: true,
-			})
+			embed.AddInlineField(
+				strconv.FormatFloat(rating.Rating, 'f', 2, 64),
+				"by "+format.GetMemberDisplayName(user),
+			)
 		}
 	}
 
-	return &discordgo.MessageEmbed{
-		Title:       movie.Title,
-		URL:         movie.GetURL(),
-		Description: movie.Description,
-		Image: &discordgo.MessageEmbedImage{
-			URL: movie.Image,
-		},
-		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Added by " + getMemberDisplayName(user),
-		},
-		Timestamp: movie.WatchedOn.Format(time.RFC3339),
-		Fields:    fields,
-	}, nil
+	res := embed.
+		SetTitle(movie.Title).
+		SetUrl(movie.GetURL()).
+		SetDescription(movie.Description).
+		SetImage(movie.Image).
+		SetFooter("Added by "+format.GetMemberDisplayName(user), "").
+		SetTimestamp(movie.WatchedOn.Format(time.RFC3339)).
+		MessageEmbed
+
+	return res, nil
 }
 
 func (c *MovieCommand) movieList(session *discordgo.Session, intr *discordgo.InteractionCreate) {
