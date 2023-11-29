@@ -42,6 +42,11 @@ func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
 			Description: "Stop audio playback",
 			Type:        discordgo.ChatApplicationCommand,
 		},
+		{
+			Name:        "skip",
+			Description: "Skip current song",
+			Type:        discordgo.ChatApplicationCommand,
+		},
 	}
 }
 
@@ -54,6 +59,8 @@ func (c *PlayCommand) Setup(bot *bot.Bot) error {
 		switch opt.Name {
 		case "play":
 			c.HandlePlay(sesh, intr)
+		case "skip":
+			c.HandleSkip(sesh, intr)
 		}
 	})
 

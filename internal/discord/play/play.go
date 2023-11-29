@@ -149,16 +149,16 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 	if !playbackService.IsRunning() {
 		var wg sync.WaitGroup
 		go func(guildId string) {
-			pCtx, pCancel := context.WithCancel(context.Background())
-			defer pCancel()
+			playbackContext, playbackCancel := context.WithCancelCause(context.Background())
+			defer playbackCancel(playback.ErrCauseStop)
 
-			stopHandlerCancel := createStopHandler(session, pCancel, guildId)
+			stopHandlerCancel := createStopHandler(session, playbackCancel, guildId)
 			go func(channelId string) {
 				tick := time.NewTicker(time.Minute)
 				defer tick.Stop()
 				for {
 					select {
-					case <-pCtx.Done():
+					case <-playbackContext.Done():
 						return
 					case <-tick.C:
 						log.Info("PlaybackService: checking if bot is last in server...")
@@ -167,7 +167,7 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 							return
 						} else if ok {
 							log.Info("PlaybackService: bot is last in server, cancelling playback")
-							pCancel()
+							playbackCancel(playback.ErrCauseStop)
 							return
 						} else {
 							log.Info("PlaybackService: bot is not last in server, continuing playback")
@@ -177,7 +177,7 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 			}(playbackService.ChannelId())
 
 			wg.Add(1)
-			err := playbackService.Run(pCtx, &wg)
+			err := playbackService.Run(playbackContext, &wg)
 			if err != nil {
 				log.Error("playback error has occured", "err", err)
 			}
@@ -230,7 +230,7 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 	}
 }
 
-func createStopHandler(sesh *discordgo.Session, cancel context.CancelFunc, guildId string) func() {
+func createStopHandler(sesh *discordgo.Session, cancel context.CancelCauseFunc, guildId string) func() {
 	return sesh.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.GuildID != guildId {
 			return
@@ -251,8 +251,48 @@ func createStopHandler(sesh *discordgo.Session, cancel context.CancelFunc, guild
 			format.DisplayInteractionError(s, i, "Failure responding to interaction. See the log for details.")
 		}
 
-		cancel()
+		cancel(playback.ErrCauseStop)
 	})
+}
+
+func (c *PlayCommand) HandleSkip(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
+	guildId := intr.GuildID
+	userId := intr.Member.User.ID
+	botUserId := sesh.State.User.ID
+
+	botChannelId, err := c.getUserChannelId(sesh, botUserId, guildId)
+	if err != nil {
+		format.DisplayInteractionError(sesh, intr, "Nothing to skip.")
+		return
+	}
+
+	channelId, err := c.getUserChannelId(sesh, userId, guildId)
+	if err != nil || channelId != botChannelId {
+		format.DisplayInteractionError(sesh, intr, "You must be in the same voice channel as the me to use this command.")
+		return
+	}
+
+	if ps := c.playbackManager.Get(guildId); ps != nil {
+		err := ps.Skip()
+		if errors.Is(err, playback.ErrSkipUnavailable) {
+			format.DisplayInteractionError(sesh, intr, "Nothing to skip yet.")
+			return
+		}
+	} else {
+		format.DisplayInteractionError(sesh, intr, "Nothing to skip.")
+		return
+	}
+
+	err = sesh.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "Skipped current song.",
+		},
+	})
+	if err != nil {
+		slog.Error("failure responding to interaction", "err", err)
+		format.DisplayInteractionError(sesh, intr, "Failure responding to interaction. See the log for details.")
+	}
 }
 
 func (c *PlayCommand) getUserChannelId(sesh *discordgo.Session, userId string, guildId string) (string, error) {
