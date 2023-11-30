@@ -289,8 +289,15 @@ func (c *PlayCommand) HandleSkip(sesh *discordgo.Session, intr *discordgo.Intera
 		}
 	}
 
+	opt := intr.ApplicationCommandData().Options
+
+	skipAmount := int64(skipMinValue)
+	if len(opt) > 0 {
+		skipAmount = intr.ApplicationCommandData().Options[0].IntValue()
+	}
+
 	if ps := c.playbackManager.Get(guildId); ps != nil {
-		err := ps.Skip()
+		err := ps.Skip(int(skipAmount))
 		if errors.Is(err, playback.ErrSkipUnavailable) {
 			format.DisplayInteractionError(sesh, intr, "Nothing to skip yet.")
 			return

@@ -21,6 +21,10 @@ func NewCommand() *PlayCommand {
 	}
 }
 
+var (
+	skipMinValue = 1.0
+)
+
 func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
 	return []*discordgo.ApplicationCommand{
 		{
@@ -46,6 +50,14 @@ func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
 			Name:        "skip",
 			Description: "Skip current song",
 			Type:        discordgo.ChatApplicationCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "amount",
+					Description: "Amount of songs to skip",
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					MinValue:    &skipMinValue,
+				},
+			},
 		},
 	}
 }

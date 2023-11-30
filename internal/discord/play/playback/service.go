@@ -86,7 +86,7 @@ func (s *PlaybackService) waitForVideos(ctx context.Context) {
 	}
 }
 
-func (s *PlaybackService) Skip() error {
+func (s *PlaybackService) Skip(cnt int) error {
 	s.Lock()
 	defer s.Unlock()
 	if s.skipFunc == nil {
@@ -95,6 +95,8 @@ func (s *PlaybackService) Skip() error {
 
 	s.skipFunc(ErrCauseSkip)
 	s.skipFunc = nil
+
+	s.head += (cnt - 1)
 
 	return nil
 }
