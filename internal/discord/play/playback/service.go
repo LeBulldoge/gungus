@@ -2,7 +2,6 @@ package playback
 
 import (
 	"bufio"
-	"container/list"
 	"context"
 	"errors"
 	"io"
@@ -26,17 +25,20 @@ var (
 type PlaybackService struct {
 	sync.RWMutex
 
-	queue   *list.List
 	vc      *discordgo.VoiceConnection
 	running bool
 
 	skipFunc context.CancelCauseFunc
+
+	head  int
+	queue []youtube.YoutubeData
 }
 
 func NewPlaybackService(vc *discordgo.VoiceConnection) *PlaybackService {
 	return &PlaybackService{
 		vc:    vc,
-		queue: list.New(),
+		queue: make([]youtube.YoutubeData, 0),
+		head:  -1,
 	}
 }
 
@@ -47,19 +49,16 @@ func (s *PlaybackService) EnqueueVideo(video youtube.YoutubeData) error {
 		return errors.New("playback service isn't running")
 	}
 
-	s.queue.PushBack(video)
+	s.queue = append(s.queue, video)
 
 	return nil
 }
 
-func (s *PlaybackService) popVideo() youtube.YoutubeData {
+func (s *PlaybackService) getNextVideo() youtube.YoutubeData {
 	s.Lock()
 	defer s.Unlock()
 
-	var video youtube.YoutubeData
-	if v, ok := s.queue.Remove(s.queue.Front()).(youtube.YoutubeData); ok {
-		video = v
-	}
+	video := s.queue[s.head]
 
 	return video
 }
@@ -68,7 +67,8 @@ func (s *PlaybackService) nextVideo() bool {
 	s.Lock()
 	defer s.Unlock()
 
-	return s.queue.Len() > 0
+	s.head++
+	return s.head < len(s.queue)
 }
 
 func (s *PlaybackService) waitForVideos(ctx context.Context) {
@@ -111,7 +111,7 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 	s.waitForVideos(ctx)
 
 	for s.nextVideo() {
-		video := s.popVideo()
+		video := s.getNextVideo()
 
 		s.Lock()
 		err := s.vc.Speaking(true)
@@ -158,15 +158,15 @@ func (s *PlaybackService) IsRunning() bool {
 }
 
 func (s *PlaybackService) Cleanup() error {
-	// wait for channel to be clear and close
-	s.queue.Init()
+	s.Lock()
+	defer s.Unlock()
 	return s.vc.Disconnect()
 }
 
 func (s *PlaybackService) Count() int {
 	s.RLock()
 	defer s.RUnlock()
-	return s.queue.Len()
+	return len(s.queue)
 }
 
 func (s *PlaybackService) ChannelId() string {

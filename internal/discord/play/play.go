@@ -165,9 +165,8 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 		}
 		video := ytData.Data
 
-		err := playbackService.EnqueueVideo(video)
-		if err != nil {
-			log.Info("failed to queue a video", "err", err)
+		if err := playbackService.EnqueueVideo(video); err != nil {
+			log.Error("failed to add video to playback service", "err", err)
 			return
 		}
 
