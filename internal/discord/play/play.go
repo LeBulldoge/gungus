@@ -117,6 +117,16 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 		return
 	}
 
+	if err := c.isUserAndBotInSameChannel(session, intr.GuildID, intr.Member.User.ID); err != nil {
+		switch {
+		case errors.Is(err, errUserNotInAnyChannel):
+			fallthrough
+		case errors.Is(err, errUserNotInBotsChannel):
+			format.DisplayInteractionError(session, intr, "You must be in the same voice channel as the bot to use this command.")
+			return
+		}
+	}
+
 	var playbackService *playback.PlaybackService
 	if ps := c.playbackManager.Get(intr.GuildID); ps != nil {
 		log.Info("get stored playbackService")
@@ -124,7 +134,7 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 	} else {
 		log.Info("creating new playbackService")
 
-		channelId, err := c.getUserChannelId(session, intr.Member.User.ID, intr.GuildID)
+		channelId, err := c.getUserChannelId(session, intr.GuildID, intr.Member.User.ID)
 		if err != nil {
 			log.Error("failure getting channel id", "err", err)
 			format.DisplayInteractionError(session, intr, "You must be in a voice channel to use this command.")
@@ -266,18 +276,18 @@ func createStopHandler(sesh *discordgo.Session, cancel context.CancelCauseFunc, 
 func (c *PlayCommand) HandleSkip(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
 	guildId := intr.GuildID
 	userId := intr.Member.User.ID
-	botUserId := sesh.State.User.ID
 
-	botChannelId, err := c.getUserChannelId(sesh, botUserId, guildId)
-	if err != nil {
-		format.DisplayInteractionError(sesh, intr, "Nothing to skip.")
-		return
-	}
-
-	channelId, err := c.getUserChannelId(sesh, userId, guildId)
-	if err != nil || channelId != botChannelId {
-		format.DisplayInteractionError(sesh, intr, "You must be in the same voice channel as the me to use this command.")
-		return
+	if err := c.isUserAndBotInSameChannel(sesh, guildId, userId); err != nil {
+		switch {
+		case errors.Is(err, errUserNotInAnyChannel):
+			fallthrough
+		case errors.Is(err, errUserNotInBotsChannel):
+			format.DisplayInteractionError(sesh, intr, "You must be in the same voice channel as the bot to use this command.")
+			return
+		case errors.Is(err, errBotIsNotInAnyChannel):
+			format.DisplayInteractionError(sesh, intr, "Nothing to skip.")
+			return
+		}
 	}
 
 	if ps := c.playbackManager.Get(guildId); ps != nil {
@@ -291,7 +301,7 @@ func (c *PlayCommand) HandleSkip(sesh *discordgo.Session, intr *discordgo.Intera
 		return
 	}
 
-	err = sesh.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+	err := sesh.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Skipped current song.",
@@ -303,12 +313,45 @@ func (c *PlayCommand) HandleSkip(sesh *discordgo.Session, intr *discordgo.Intera
 	}
 }
 
-func (c *PlayCommand) getUserChannelId(sesh *discordgo.Session, userId string, guildId string) (string, error) {
+var (
+	errBotIsNotInAnyChannel = errors.New("bot isn't in any channels")
+	errUserNotInAnyChannel  = errors.New("you must be in a voice channel")
+	errUserNotInBotsChannel = errors.New("you must be in the same channel as the bot")
+)
+
+func (c *PlayCommand) isUserAndBotInSameChannel(sesh *discordgo.Session, guildId string, userId string) error {
+	botUserId := sesh.State.User.ID
+
+	botChannelId, err := c.getUserChannelId(sesh, guildId, botUserId)
+	if err != nil {
+		return errBotIsNotInAnyChannel
+	}
+
+	channelId, err := c.getUserChannelId(sesh, guildId, userId)
+	if err != nil {
+		return errUserNotInAnyChannel
+	}
+
+	if channelId != botChannelId {
+		return errUserNotInBotsChannel
+	}
+
+	return nil
+}
+
+func (c *PlayCommand) getUserChannelId(sesh *discordgo.Session, guildId string, userId string) (string, error) {
 	var channelId string
 
 	g, err := sesh.State.Guild(guildId)
 	if err != nil {
-		return channelId, fmt.Errorf("failure getting guild: %w", err)
+		if !errors.Is(err, discordgo.ErrStateNotFound) {
+			return channelId, fmt.Errorf("failure getting guild: %w", err)
+		}
+
+		g, err = sesh.Guild(guildId)
+		if err != nil {
+			return channelId, fmt.Errorf("failure getting guild: %w", err)
+		}
 	}
 
 	c.logger.Info("guild acquired", "guildId", g.ID, "name", g.Name)
