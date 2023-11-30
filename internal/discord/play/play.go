@@ -138,61 +138,13 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 			return
 		}
 
-		playbackService = playback.NewPlaybackService(voice)
-		if err := c.playbackManager.Add(intr.GuildID, playbackService); err != nil {
-			log.Error("error adding a new playback service", "guildId", intr.GuildID, "err", err)
+		var wg sync.WaitGroup
+		wg.Add(1)
+		playbackService = c.setupPlaybackService(session, intr, voice, log, &wg)
+		if playbackService == nil {
 			format.DisplayInteractionError(session, intr, "Error starting playback.")
 			return
 		}
-	}
-
-	if !playbackService.IsRunning() {
-		var wg sync.WaitGroup
-		go func(guildId string) {
-			playbackContext, playbackCancel := context.WithCancelCause(context.Background())
-			defer playbackCancel(playback.ErrCauseStop)
-
-			stopHandlerCancel := createStopHandler(session, playbackCancel, guildId)
-			go func(channelId string) {
-				tick := time.NewTicker(time.Minute)
-				defer tick.Stop()
-				for {
-					select {
-					case <-playbackContext.Done():
-						return
-					case <-tick.C:
-						log.Info("PlaybackService: checking if bot is last in server...")
-						if ok, err := c.isBotLastInVoiceChannel(session, guildId, channelId); err != nil {
-							log.Error("PlaybackService: timeout ticker error", "err", err)
-							return
-						} else if ok {
-							log.Info("PlaybackService: bot is last in server, cancelling playback")
-							playbackCancel(playback.ErrCauseStop)
-							return
-						} else {
-							log.Info("PlaybackService: bot is not last in server, continuing playback")
-						}
-					}
-				}
-			}(playbackService.ChannelId())
-
-			wg.Add(1)
-			err := playbackService.Run(playbackContext, &wg)
-			if err != nil {
-				log.Error("playback error has occured", "err", err)
-			}
-
-			stopHandlerCancel()
-
-			if err := playbackService.Cleanup(); err != nil {
-				log.Error("failure to close playbackService", "err", err)
-			}
-
-			log.Info("deleting playbackService", "guildId", guildId)
-			if err := c.playbackManager.Delete(guildId); err != nil {
-				log.Error("error deleting playbackService", "guildId", guildId, "err", err)
-			}
-		}(intr.GuildID)
 		wg.Wait()
 	}
 
@@ -228,6 +180,62 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 			return
 		}
 	}
+}
+
+func (c *PlayCommand) setupPlaybackService(session *discordgo.Session, intr *discordgo.InteractionCreate, voice *discordgo.VoiceConnection, log *slog.Logger, wg *sync.WaitGroup) *playback.PlaybackService {
+	playbackService := playback.NewPlaybackService(voice)
+	if err := c.playbackManager.Add(intr.GuildID, playbackService); err != nil {
+		log.Error("error adding a new playback service", "guildId", intr.GuildID, "err", err)
+		return nil
+	}
+
+	// Run the service
+	go func(guildId string) {
+		playbackContext, playbackCancel := context.WithCancelCause(context.Background())
+		stopHandlerCancel := createStopHandler(session, playbackCancel, guildId)
+
+		// Setup service timeout ticker, in case bot is left alone in a channel
+		go func(channelId string) {
+			tick := time.NewTicker(time.Minute)
+			defer tick.Stop()
+			for {
+				select {
+				case <-playbackContext.Done():
+					return
+				case <-tick.C:
+					log.Info("PlaybackService: checking if bot is last in server...")
+					if ok, err := c.isBotLastInVoiceChannel(session, guildId, channelId); err != nil {
+						log.Error("PlaybackService: timeout ticker error", "err", err)
+						return
+					} else if ok {
+						log.Info("PlaybackService: bot is last in server, cancelling playback")
+						playbackCancel(playback.ErrCauseStop)
+						return
+					} else {
+						log.Info("PlaybackService: bot is not last in server, continuing playback")
+					}
+				}
+			}
+		}(playbackService.ChannelId())
+
+		err := playbackService.Run(playbackContext, wg)
+		if err != nil {
+			log.Error("playback error has occured", "err", err)
+		}
+
+		stopHandlerCancel()
+
+		if err := playbackService.Cleanup(); err != nil {
+			log.Error("failure to close playbackService", "err", err)
+		}
+
+		log.Info("deleting playbackService", "guildId", guildId)
+		if err := c.playbackManager.Delete(guildId); err != nil {
+			log.Error("error deleting playbackService", "guildId", guildId, "err", err)
+		}
+	}(intr.GuildID)
+
+	return playbackService
 }
 
 func createStopHandler(sesh *discordgo.Session, cancel context.CancelCauseFunc, guildId string) func() {
