@@ -101,6 +101,13 @@ func (s *PlaybackService) Skip(cnt int) error {
 	return nil
 }
 
+func (s *PlaybackService) Queue() []youtube.YoutubeData {
+	s.RLock()
+	defer s.RUnlock()
+
+	return s.queue[s.head:]
+}
+
 func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 	if s.IsRunning() {
 		return errors.New("playback service is already running")

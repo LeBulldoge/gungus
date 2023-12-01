@@ -22,7 +22,8 @@ func NewCommand() *PlayCommand {
 }
 
 var (
-	skipMinValue = 1.0
+	skipMinValue        = 1.0
+	queueAmountMinValue = 1.0
 )
 
 func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
@@ -59,6 +60,19 @@ func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
 				},
 			},
 		},
+		{
+			Name:        "queue",
+			Description: "View the current song queue",
+			Type:        discordgo.ChatApplicationCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "amount",
+					Description: "Amount of fields to show. Each field can contain up to 10 songs.",
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					MinValue:    &queueAmountMinValue,
+				},
+			},
+		},
 	}
 }
 
@@ -73,6 +87,8 @@ func (c *PlayCommand) Setup(bot *bot.Bot) error {
 			c.HandlePlay(sesh, intr)
 		case "skip":
 			c.HandleSkip(sesh, intr)
+		case "queue":
+			c.HandleQueue(sesh, intr)
 		}
 	})
 

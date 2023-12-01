@@ -16,6 +16,11 @@ type YoutubeData struct {
 	Title     string
 	Thumbnail string
 	Length    string
+	Id        string
+}
+
+func (d YoutubeData) GetShortUrl() string {
+	return "https://youtu.be/" + d.Id
 }
 
 type YoutubeDataResult struct {
@@ -89,8 +94,9 @@ func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeD
 		"yt-dlp",
 		videoUrl,
 		"-f", "ba",
-		"--get-url",
 		"--get-title",
+		"--get-id",
+		"--get-url",
 		"--get-thumbnail",
 		"--get-duration",
 		"--cache-dir", os.CachePath("ytdlp"),
@@ -115,6 +121,10 @@ func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeD
 			res.Data.Title = scanner.Text()
 
 			if scanner.Scan() {
+				res.Data.Id = scanner.Text()
+			}
+
+			if scanner.Scan() {
 				res.Data.Url = scanner.Text()
 			}
 
@@ -124,6 +134,15 @@ func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeD
 
 			if scanner.Scan() {
 				res.Data.Length = scanner.Text()
+				if str := strings.Count(res.Data.Length, ":"); str < 1 {
+					var sb strings.Builder
+					sb.WriteString("00:")
+					if len(res.Data.Length) < 2 {
+						sb.WriteRune('0')
+						sb.WriteString(res.Data.Length)
+					}
+					res.Data.Length = sb.String()
+				}
 			}
 
 			select {

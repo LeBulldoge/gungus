@@ -73,6 +73,21 @@ func (c *PlayCommand) handlePlayAutocomplete(session *discordgo.Session, intr *d
 	}
 }
 
+var allowedHosts = []string{
+	"www.youtube.com",
+	"youtube.com",
+	"youtu.be",
+}
+
+func isHostAllowed(host string) bool {
+	for _, h := range allowedHosts {
+		if host == h {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.InteractionCreate) {
 	if intr.Type == discordgo.InteractionApplicationCommandAutocomplete {
 		c.handlePlayAutocomplete(session, intr)
@@ -89,9 +104,9 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 		format.DisplayInteractionError(session, intr, "Error parsing url!")
 		return
 	} else {
-		if url.Host != "www.youtube.com" {
+		if !isHostAllowed(url.Host) {
 			log.Error("error parsing url: incorrect domain")
-			format.DisplayInteractionError(session, intr, "Domain must be `www.youtube.com`, not `"+url.Host+"`")
+			format.DisplayInteractionError(session, intr, "Domain must be `youtube.com`, `youtu.be` and etc.")
 			return
 		}
 		videoUrl = url.String()
@@ -175,7 +190,7 @@ func (c *PlayCommand) HandlePlay(session *discordgo.Session, intr *discordgo.Int
 		embed := embed.NewEmbed().
 			SetAuthor("Added to queue").
 			SetTitle(video.Title).
-			SetUrl(video.Url).
+			SetUrl(video.GetShortUrl()).
 			SetThumbnail(video.Thumbnail).
 			SetDescription(video.Length).
 			SetFooter(fmt.Sprintf("Queue length: %d", playbackService.Count()), "").
