@@ -10,17 +10,17 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type MovieCommand struct {
+type Command struct {
 	database.WithStorage
 
 	logger *slog.Logger
 }
 
-func NewCommand() *MovieCommand {
-	return &MovieCommand{}
+func NewCommand() *Command {
+	return &Command{}
 }
 
-func (c *MovieCommand) GetSignature() []*discordgo.ApplicationCommand {
+func (c *Command) GetSignature() []*discordgo.ApplicationCommand {
 	return []*discordgo.ApplicationCommand{
 		{
 			Name:        "movie",
@@ -106,7 +106,7 @@ func (c *MovieCommand) GetSignature() []*discordgo.ApplicationCommand {
 	}
 }
 
-func (c *MovieCommand) Setup(bot *bot.Bot) error {
+func (c *Command) Setup(bot *bot.Bot) error {
 	bot.Session.AddHandler(func(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
 		switch intr.Type {
 		case discordgo.InteractionApplicationCommand:
@@ -140,11 +140,11 @@ func (c *MovieCommand) Setup(bot *bot.Bot) error {
 	return nil
 }
 
-func (c *MovieCommand) Cleanup(bot *bot.Bot) error {
+func (c *Command) Cleanup(bot *bot.Bot) error {
 	return nil
 }
 
-func (c *MovieCommand) AddLogger(logger *slog.Logger) {
+func (c *Command) AddLogger(logger *slog.Logger) {
 	if logger == nil {
 		return
 	}

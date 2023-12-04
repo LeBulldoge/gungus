@@ -12,15 +12,15 @@ import (
 )
 
 type YoutubeData struct {
-	Url       string
+	URL       string
 	Title     string
 	Thumbnail string
 	Length    string
-	Id        string
+	ID        string
 }
 
-func (d YoutubeData) GetShortUrl() string {
-	return "https://youtu.be/" + d.Id
+func (d YoutubeData) GetShortURL() string {
+	return "https://youtu.be/" + d.ID
 }
 
 type YoutubeDataResult struct {
@@ -65,7 +65,7 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 				continue
 			}
 
-			res.Data.Url = parts[0]
+			res.Data.URL = parts[0]
 			res.Data.Title = parts[1]
 
 			select {
@@ -89,10 +89,10 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 	return nil
 }
 
-func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeDataResult) error {
+func GetYoutubeData(ctx context.Context, videoURL string, output chan<- YoutubeDataResult) error {
 	ytdlp := exec.Command(
 		"yt-dlp",
-		videoUrl,
+		videoURL,
 		"-f", "ba",
 		"--get-title",
 		"--get-id",
@@ -121,11 +121,11 @@ func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeD
 			res.Data.Title = scanner.Text()
 
 			if scanner.Scan() {
-				res.Data.Id = scanner.Text()
+				res.Data.ID = scanner.Text()
 			}
 
 			if scanner.Scan() {
-				res.Data.Url = scanner.Text()
+				res.Data.URL = scanner.Text()
 			}
 
 			if scanner.Scan() {
@@ -147,18 +147,18 @@ func GetYoutubeData(ctx context.Context, videoUrl string, output chan<- YoutubeD
 
 			select {
 			case <-ctx.Done():
-				slog.Info("GetYoutubeData canceled via context", "videoUrl", videoUrl)
+				slog.Info("GetYoutubeData canceled via context", "videoUrl", videoURL)
 				return
 			case output <- res:
 			}
 		}
-		slog.Info("GetYoutubeData finished", "videoUrl", videoUrl)
+		slog.Info("GetYoutubeData finished", "videoUrl", videoURL)
 
 		if err := ytdlp.Wait(); err != nil {
 			res.Error = err
 			select {
 			case <-ctx.Done():
-				slog.Info("GetYoutubeData canceled via context", "videoUrl", videoUrl)
+				slog.Info("GetYoutubeData canceled via context", "videoUrl", videoURL)
 				return
 			case output <- res:
 			}

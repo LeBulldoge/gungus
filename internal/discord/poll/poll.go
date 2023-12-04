@@ -14,7 +14,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.InteractionCreate) {
+func (c *Command) handlePoll(session *discordgo.Session, intr *discordgo.InteractionCreate) {
 	opt := intr.ApplicationCommandData().Options[0]
 	pollTitle := opt.Options[0].StringValue()
 
@@ -94,7 +94,7 @@ func (c *PollCommand) handlePoll(session *discordgo.Session, intr *discordgo.Int
 	}
 }
 
-func (c *PollCommand) handleVote(session *discordgo.Session, intr *discordgo.InteractionCreate) {
+func (c *Command) handleVote(session *discordgo.Session, intr *discordgo.InteractionCreate) {
 	err := session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredMessageUpdate,
 	})

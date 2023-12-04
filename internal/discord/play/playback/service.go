@@ -136,7 +136,7 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 		s.Unlock()
 
 		slog.Info("PlaybackService: currently playing", "guild", s.vc.GuildID, "video", video.Title)
-		err = playAudioFromUrl(skipCtx, video.Url, s.vc)
+		err = playAudioFromURL(skipCtx, video.URL, s.vc)
 		if err != nil && !errors.Is(err, ErrCauseSkip) {
 			return err
 		}
@@ -178,13 +178,13 @@ func (s *PlaybackService) Count() int {
 	return len(s.queue)
 }
 
-func (s *PlaybackService) ChannelId() string {
+func (s *PlaybackService) ChannelID() string {
 	s.RLock()
 	defer s.RUnlock()
 	return s.vc.ChannelID
 }
 
-func playAudioFromUrl(ctx context.Context, url string, vc *discordgo.VoiceConnection) error {
+func playAudioFromURL(ctx context.Context, url string, vc *discordgo.VoiceConnection) error {
 	ytdlp := exec.Command(
 		"yt-dlp",
 		url,

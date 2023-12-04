@@ -13,7 +13,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func (c *QuoteCommand) addQuote(session *discordgo.Session, intr *discordgo.InteractionCreate) {
+func (c *Command) addQuote(session *discordgo.Session, intr *discordgo.InteractionCreate) {
 	opt := intr.ApplicationCommandData().Options[0]
 
 	byUser := opt.Options[0].UserValue(session)
@@ -49,7 +49,7 @@ func (c *QuoteCommand) addQuote(session *discordgo.Session, intr *discordgo.Inte
 	log.Info("quote added")
 }
 
-func (c *QuoteCommand) randomQuote(session *discordgo.Session, intr *discordgo.InteractionCreate) {
+func (c *Command) randomQuote(session *discordgo.Session, intr *discordgo.InteractionCreate) {
 	opt := intr.ApplicationCommandData().Options[0]
 
 	var byUser *discordgo.User

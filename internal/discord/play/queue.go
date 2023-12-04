@@ -12,11 +12,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func (c *PlayCommand) HandleQueue(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
-	guildId := intr.GuildID
+func (c *Command) HandleQueue(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
+	guildID := intr.GuildID
 
 	var queue []youtube.YoutubeData
-	if ps := c.playbackManager.Get(guildId); ps != nil {
+	if ps := c.playbackManager.Get(guildID); ps != nil {
 		queue = ps.Queue()
 	}
 	if len(queue) < 1 {
@@ -38,7 +38,7 @@ func (c *PlayCommand) HandleQueue(sesh *discordgo.Session, intr *discordgo.Inter
 		SetAuthor("Currently playing").
 		SetTitle(currentVideo.Title).
 		SetThumbnail(currentVideo.Thumbnail).
-		SetUrl(currentVideo.GetShortUrl()).
+		SetUrl(currentVideo.GetShortURL()).
 		SetDescription(currentVideo.Length).
 		SetFooter("Total count: "+strconv.Itoa(queueLength), "").
 		SetTimestamp(time.Now().Format(time.RFC3339))
@@ -67,7 +67,7 @@ func (c *PlayCommand) HandleQueue(sesh *discordgo.Session, intr *discordgo.Inter
 				if titleLen > maxTitleLen {
 					video.Title = video.Title[:maxTitleLen-3] + "..."
 				}
-				fmt.Fprintf(&sb, "%d: [%s](%s) - (%s)\n", fieldStart+i+1, video.Title, video.GetShortUrl(), video.Length)
+				fmt.Fprintf(&sb, "%d: [%s](%s) - (%s)\n", fieldStart+i+1, video.Title, video.GetShortURL(), video.Length)
 			}
 
 			embed.AddField("", sb.String())

@@ -11,17 +11,17 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type PollCommand struct {
+type Command struct {
 	database.WithStorage
 
 	logger *slog.Logger
 }
 
-func NewCommand() *PollCommand {
-	return &PollCommand{}
+func NewCommand() *Command {
+	return &Command{}
 }
 
-func (c *PollCommand) GetSignature() []*discordgo.ApplicationCommand {
+func (c *Command) GetSignature() []*discordgo.ApplicationCommand {
 	return []*discordgo.ApplicationCommand{
 		{
 			Name:        "poll",
@@ -60,7 +60,7 @@ func buildPollCreateArgs() []*discordgo.ApplicationCommandOption {
 	return res
 }
 
-func (c *PollCommand) Setup(bot *bot.Bot) error {
+func (c *Command) Setup(bot *bot.Bot) error {
 	bot.Session.AddHandler(func(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
 		switch intr.Type {
 		case discordgo.InteractionApplicationCommand:
@@ -84,11 +84,11 @@ func (c *PollCommand) Setup(bot *bot.Bot) error {
 	return nil
 }
 
-func (c *PollCommand) Cleanup(bot *bot.Bot) error {
+func (c *Command) Cleanup(bot *bot.Bot) error {
 	return nil
 }
 
-func (c *PollCommand) AddLogger(logger *slog.Logger) {
+func (c *Command) AddLogger(logger *slog.Logger) {
 	if logger == nil {
 		return
 	}

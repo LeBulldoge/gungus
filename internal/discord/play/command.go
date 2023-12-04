@@ -9,14 +9,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type PlayCommand struct {
+type Command struct {
 	playbackManager playback.PlaybackServiceManager
 
 	logger *slog.Logger
 }
 
-func NewCommand() *PlayCommand {
-	return &PlayCommand{
+func NewCommand() *Command {
+	return &Command{
 		playbackManager: playback.NewManager(),
 	}
 }
@@ -26,7 +26,7 @@ var (
 	queueAmountMinValue = 1.0
 )
 
-func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
+func (c *Command) GetSignature() []*discordgo.ApplicationCommand {
 	return []*discordgo.ApplicationCommand{
 		{
 			Name:        "play",
@@ -76,7 +76,7 @@ func (c *PlayCommand) GetSignature() []*discordgo.ApplicationCommand {
 	}
 }
 
-func (c *PlayCommand) Setup(bot *bot.Bot) error {
+func (c *Command) Setup(bot *bot.Bot) error {
 	bot.Session.AddHandler(func(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
 		if intr.Type != discordgo.InteractionApplicationCommand && intr.Type != discordgo.InteractionApplicationCommandAutocomplete {
 			return
@@ -84,9 +84,9 @@ func (c *PlayCommand) Setup(bot *bot.Bot) error {
 		opt := intr.ApplicationCommandData()
 		switch opt.Name {
 		case "play":
-			c.HandlePlay(sesh, intr)
+			c.handlePlay(sesh, intr)
 		case "skip":
-			c.HandleSkip(sesh, intr)
+			c.handleSkip(sesh, intr)
 		case "queue":
 			c.HandleQueue(sesh, intr)
 		}
@@ -95,11 +95,11 @@ func (c *PlayCommand) Setup(bot *bot.Bot) error {
 	return nil
 }
 
-func (c *PlayCommand) Cleanup(bot *bot.Bot) error {
+func (c *Command) Cleanup(bot *bot.Bot) error {
 	return nil
 }
 
-func (c *PlayCommand) AddLogger(logger *slog.Logger) {
+func (c *Command) AddLogger(logger *slog.Logger) {
 	if logger == nil {
 		return
 	}
@@ -107,4 +107,4 @@ func (c *PlayCommand) AddLogger(logger *slog.Logger) {
 	c.logger = logger
 }
 
-func (c *PlayCommand) SetStorageConnection(*database.Storage) {}
+func (c *Command) SetStorageConnection(*database.Storage) {}

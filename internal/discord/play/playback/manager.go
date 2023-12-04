@@ -17,40 +17,40 @@ func NewManager() PlaybackServiceManager {
 	}
 }
 
-func (m *PlaybackServiceManager) Get(guildId string) *PlaybackService {
+func (m *PlaybackServiceManager) Get(guildID string) *PlaybackService {
 	m.RLock()
 	defer m.RUnlock()
 
 	var res *PlaybackService
-	if ps, ok := m.services[guildId]; ok {
+	if ps, ok := m.services[guildID]; ok {
 		res = ps
 	}
 
 	return res
 }
 
-func (m *PlaybackServiceManager) Add(guildId string, ps *PlaybackService) error {
+func (m *PlaybackServiceManager) Add(guildID string, ps *PlaybackService) error {
 	m.Lock()
 	defer m.Unlock()
 
-	if _, ok := m.services[guildId]; ok {
+	if _, ok := m.services[guildID]; ok {
 		return errors.New("playback service already exists")
 	}
 
-	m.services[guildId] = ps
+	m.services[guildID] = ps
 
 	return nil
 }
 
-func (m *PlaybackServiceManager) Delete(guildId string) error {
+func (m *PlaybackServiceManager) Delete(guildID string) error {
 	m.Lock()
 	defer m.Unlock()
 
-	if _, ok := m.services[guildId]; !ok {
+	if _, ok := m.services[guildID]; !ok {
 		return errors.New("playback service does not exist")
-	} else {
-		delete(m.services, guildId)
 	}
+
+	delete(m.services, guildID)
 
 	return nil
 }

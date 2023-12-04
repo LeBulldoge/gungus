@@ -8,17 +8,17 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type QuoteCommand struct {
+type Command struct {
 	database.WithStorage
 
 	logger *slog.Logger
 }
 
-func NewCommand() *QuoteCommand {
-	return &QuoteCommand{}
+func NewCommand() *Command {
+	return &Command{}
 }
 
-func (c *QuoteCommand) GetSignature() []*discordgo.ApplicationCommand {
+func (c *Command) GetSignature() []*discordgo.ApplicationCommand {
 	return []*discordgo.ApplicationCommand{
 		{
 			Name:        "quote",
@@ -60,7 +60,7 @@ func (c *QuoteCommand) GetSignature() []*discordgo.ApplicationCommand {
 	}
 }
 
-func (c *QuoteCommand) AddLogger(logger *slog.Logger) {
+func (c *Command) AddLogger(logger *slog.Logger) {
 	if logger == nil {
 		return
 	}
@@ -68,7 +68,7 @@ func (c *QuoteCommand) AddLogger(logger *slog.Logger) {
 	c.logger = logger
 }
 
-func (c *QuoteCommand) Setup(bot *bot.Bot) error {
+func (c *Command) Setup(bot *bot.Bot) error {
 	bot.Session.AddHandler(func(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
 		switch intr.Type {
 		case discordgo.InteractionApplicationCommand:
@@ -89,6 +89,6 @@ func (c *QuoteCommand) Setup(bot *bot.Bot) error {
 	return nil
 }
 
-func (c *QuoteCommand) Cleanup(bot *bot.Bot) error {
+func (c *Command) Cleanup(bot *bot.Bot) error {
 	return nil
 }
