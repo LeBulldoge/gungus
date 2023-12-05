@@ -5,23 +5,23 @@ import (
 	"sync"
 )
 
-type PlaybackServiceManager struct {
+type PlayerStorage struct {
 	mu sync.RWMutex
 
-	services map[string]*PlaybackService
+	services map[string]*Player
 }
 
-func NewManager() PlaybackServiceManager {
-	return PlaybackServiceManager{
-		services: make(map[string]*PlaybackService),
+func NewManager() PlayerStorage {
+	return PlayerStorage{
+		services: make(map[string]*Player),
 	}
 }
 
-func (m *PlaybackServiceManager) Get(guildID string) *PlaybackService {
+func (m *PlayerStorage) Get(guildID string) *Player {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var res *PlaybackService
+	var res *Player
 	if ps, ok := m.services[guildID]; ok {
 		res = ps
 	}
@@ -29,7 +29,7 @@ func (m *PlaybackServiceManager) Get(guildID string) *PlaybackService {
 	return res
 }
 
-func (m *PlaybackServiceManager) Add(guildID string, ps *PlaybackService) error {
+func (m *PlayerStorage) Add(guildID string, ps *Player) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -42,7 +42,7 @@ func (m *PlaybackServiceManager) Add(guildID string, ps *PlaybackService) error 
 	return nil
 }
 
-func (m *PlaybackServiceManager) Delete(guildID string) error {
+func (m *PlayerStorage) Delete(guildID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

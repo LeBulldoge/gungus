@@ -16,7 +16,7 @@ func (c *Command) HandleQueue(sesh *discordgo.Session, intr *discordgo.Interacti
 	guildID := intr.GuildID
 
 	var queue []youtube.Video
-	if ps := c.playbackManager.Get(guildID); ps != nil {
+	if ps := c.playerStorage.Get(guildID); ps != nil {
 		queue = ps.Queue()
 	}
 	if len(queue) < 1 {

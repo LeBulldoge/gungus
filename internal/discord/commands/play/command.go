@@ -10,14 +10,14 @@ import (
 )
 
 type Command struct {
-	playbackManager playback.PlaybackServiceManager
+	playerStorage playback.PlayerStorage
 
 	logger *slog.Logger
 }
 
 func NewCommand() *Command {
 	return &Command{
-		playbackManager: playback.NewManager(),
+		playerStorage: playback.NewManager(),
 	}
 }
 

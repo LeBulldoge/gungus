@@ -18,11 +18,12 @@ import (
 
 var (
 	ErrCauseStop       = errors.New("playback stopped")
+	ErrCauseTimeout    = errors.New("playback timed out")
 	ErrCauseSkip       = errors.New("playback skipped")
 	ErrSkipUnavailable = errors.New("queue is empty")
 )
 
-type PlaybackService struct {
+type Player struct {
 	mu sync.RWMutex
 
 	vc      *discordgo.VoiceConnection
@@ -32,17 +33,22 @@ type PlaybackService struct {
 
 	head  int
 	queue []youtube.Video
+
+	logger *slog.Logger
 }
 
-func NewPlaybackService(vc *discordgo.VoiceConnection) *PlaybackService {
-	return &PlaybackService{
+func NewPlayer(vc *discordgo.VoiceConnection) *Player {
+	return &Player{
 		vc:    vc,
 		queue: make([]youtube.Video, 0),
 		head:  -1,
+		logger: slog.Default().
+			WithGroup("player").
+			With("guildID", vc.GuildID, "channelID", vc.ChannelID),
 	}
 }
 
-func (s *PlaybackService) EnqueueVideo(video youtube.Video) error {
+func (s *Player) EnqueueVideo(video youtube.Video) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.running {
@@ -54,7 +60,7 @@ func (s *PlaybackService) EnqueueVideo(video youtube.Video) error {
 	return nil
 }
 
-func (s *PlaybackService) getNextVideo() youtube.Video {
+func (s *Player) getNextVideo() youtube.Video {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -63,7 +69,7 @@ func (s *PlaybackService) getNextVideo() youtube.Video {
 	return video
 }
 
-func (s *PlaybackService) nextVideo() bool {
+func (s *Player) nextVideo() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -71,7 +77,7 @@ func (s *PlaybackService) nextVideo() bool {
 	return s.head < len(s.queue)
 }
 
-func (s *PlaybackService) waitForVideos(ctx context.Context) {
+func (s *Player) waitForVideos(ctx context.Context) {
 	for {
 		if s.Count() > 0 {
 			return
@@ -86,7 +92,7 @@ func (s *PlaybackService) waitForVideos(ctx context.Context) {
 	}
 }
 
-func (s *PlaybackService) Skip(cnt int) error {
+func (s *Player) Skip(cnt int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.skipFunc == nil {
@@ -101,16 +107,16 @@ func (s *PlaybackService) Skip(cnt int) error {
 	return nil
 }
 
-func (s *PlaybackService) Queue() []youtube.Video {
+func (s *Player) Queue() []youtube.Video {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	return s.queue[s.head:]
 }
 
-func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
+func (s *Player) Run(ctx context.Context, wg *sync.WaitGroup) error {
 	if s.IsRunning() {
-		return errors.New("playback service is already running")
+		return errors.New("player is already running")
 	}
 
 	s.setRunning(true)
@@ -135,8 +141,8 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 		s.skipFunc = skipFunc
 		s.mu.Unlock()
 
-		slog.Info("PlaybackService: currently playing", "guild", s.vc.GuildID, "video", video.Title)
-		err = playAudioFromURL(skipCtx, video.URL, s.vc)
+		s.logger.Info("currently playing", "guild", s.vc.GuildID, "video", video.Title)
+		err = s.playAudioFromURL(skipCtx, video.URL, s.vc)
 		if err != nil && !errors.Is(err, ErrCauseSkip) {
 			return err
 		}
@@ -147,44 +153,44 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 		if err != nil {
 			return err
 		}
-		slog.Info("PlaybackService: done playing", "guild", s.vc.GuildID, "video", video.Title)
+		s.logger.Info("done playing", "guild", s.vc.GuildID, "video", video.Title)
 	}
 
-	slog.Info("PlaybackService: queue is empty", "guild", s.vc.GuildID)
+	s.logger.Info("queue is empty", "guild", s.vc.GuildID)
 	return nil
 }
 
-func (s *PlaybackService) setRunning(val bool) {
+func (s *Player) setRunning(val bool) {
 	s.mu.Lock()
 	s.running = val
 	s.mu.Unlock()
 }
 
-func (s *PlaybackService) IsRunning() bool {
+func (s *Player) IsRunning() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.running
 }
 
-func (s *PlaybackService) Cleanup() error {
+func (s *Player) Cleanup() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.vc.Disconnect()
 }
 
-func (s *PlaybackService) Count() int {
+func (s *Player) Count() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.queue)
 }
 
-func (s *PlaybackService) ChannelID() string {
+func (s *Player) ChannelID() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.vc.ChannelID
 }
 
-func playAudioFromURL(ctx context.Context, url string, vc *discordgo.VoiceConnection) error {
+func (s *Player) playAudioFromURL(ctx context.Context, url string, vc *discordgo.VoiceConnection) error {
 	ytdlp := exec.Command(
 		"yt-dlp",
 		url,
@@ -230,33 +236,33 @@ func playAudioFromURL(ctx context.Context, url string, vc *discordgo.VoiceConnec
 	go func() {
 		sc := bufio.NewScanner(stderr)
 		for sc.Scan() {
-			slog.Info("ytdlp stderr", "output", sc.Text())
+			s.logger.Info("ytdlp stderr", "output", sc.Text())
 		}
 		if err := sc.Err(); err != nil {
-			slog.Error("ytdlp stderr reader error", "err", err)
+			s.logger.Error("ytdlp stderr reader error", "err", err)
 		}
 	}()
 
 	select {
 	case <-ctx.Done():
 		if err := session.Stop(); err != nil {
-			slog.Error("PlaybackService: failed to stop encoding session", "err", err)
+			s.logger.Error("failed to stop encoding session", "err", err)
 			return err
 		}
 		if err := ytdlp.Process.Kill(); err != nil {
-			slog.Error("PlaybackService: failed to kill yt-dlp process", "err", err)
+			s.logger.Error("failed to kill yt-dlp process", "err", err)
 			return err
 		}
 		return context.Cause(ctx)
 	case err := <-done:
 		if err != nil {
 			if err == io.EOF {
-				slog.Info("PlaybackService: playback finished")
+				s.logger.Info("playback finished")
 				return nil
 			}
 
 			errBuf, _ := io.ReadAll(stderr)
-			slog.Error("PlaybackService: error occured while playing audio", "ffmpeg messages", session.FFMPEGMessages(), "ytdlp", errBuf)
+			s.logger.Error("error occured while playing audio", "ffmpeg messages", session.FFMPEGMessages(), "ytdlp", errBuf)
 
 			return err
 		}

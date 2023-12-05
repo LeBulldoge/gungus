@@ -141,12 +141,12 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 		}
 	}
 
-	var playbackService *playback.PlaybackService
-	if ps := c.playbackManager.Get(intr.GuildID); ps != nil {
-		log.Info("get stored playbackService")
-		playbackService = ps
+	var player *playback.Player
+	if ps := c.playerStorage.Get(intr.GuildID); ps != nil {
+		log.Info("get stored player")
+		player = ps
 	} else {
-		log.Info("creating new playbackService")
+		log.Info("creating new player")
 
 		channelID, err := c.getUserChannelID(session, intr.GuildID, intr.Member.User.ID)
 		if err != nil {
@@ -164,8 +164,8 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 
 		var wg sync.WaitGroup
 		wg.Add(1)
-		playbackService = c.setupPlaybackService(session, intr, voice, log, &wg)
-		if playbackService == nil {
+		player = c.setupPlayer(session, intr, voice, log, &wg)
+		if player == nil {
 			format.DisplayInteractionError(session, intr, "Error starting playback.")
 			return
 		}
@@ -179,12 +179,12 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 		}
 		video := ytData.Video
 
-		if err := playbackService.EnqueueVideo(video); err != nil {
+		if err := player.EnqueueVideo(video); err != nil {
 			log.Error("failed to add video to playback service", "err", err)
 			return
 		}
 
-		log.Info("added video to playbackService", "video", video.Title)
+		log.Info("added video to player", "video", video.Title)
 
 		embed := embed.NewEmbed().
 			SetAuthor("Added to queue").
@@ -192,7 +192,7 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 			SetUrl(video.GetShortURL()).
 			SetThumbnail(video.Thumbnail).
 			SetDescription(video.Length).
-			SetFooter(fmt.Sprintf("Queue length: %d", playbackService.Count()), "").
+			SetFooter(fmt.Sprintf("Queue length: %d", player.Count()), "").
 			MessageEmbed
 
 		_, err = session.FollowupMessageCreate(intr.Interaction, false, &discordgo.WebhookParams{
@@ -205,9 +205,9 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 	}
 }
 
-func (c *Command) setupPlaybackService(session *discordgo.Session, intr *discordgo.InteractionCreate, voice *discordgo.VoiceConnection, log *slog.Logger, wg *sync.WaitGroup) *playback.PlaybackService {
-	playbackService := playback.NewPlaybackService(voice)
-	if err := c.playbackManager.Add(intr.GuildID, playbackService); err != nil {
+func (c *Command) setupPlayer(session *discordgo.Session, intr *discordgo.InteractionCreate, voice *discordgo.VoiceConnection, log *slog.Logger, wg *sync.WaitGroup) *playback.Player {
+	player := playback.NewPlayer(voice)
+	if err := c.playerStorage.Add(intr.GuildID, player); err != nil {
 		log.Error("error adding a new playback service", "guildId", intr.GuildID, "err", err)
 		return nil
 	}
@@ -226,39 +226,35 @@ func (c *Command) setupPlaybackService(session *discordgo.Session, intr *discord
 				case <-playbackContext.Done():
 					return
 				case <-tick.C:
-					log.Info("PlaybackService: checking if bot is last in server...")
-					if ok, err := c.isBotLastInVoiceChannel(session, guildId, channelId); err != nil {
-						log.Error("PlaybackService: timeout ticker error", "err", err)
+					if last, err := c.isBotLastInVoiceChannel(session, guildId, channelId); err != nil {
+						log.Error("timeout ticker error", "err", err)
 						return
-					} else if ok {
-						log.Info("PlaybackService: bot is last in server, cancelling playback")
-						playbackCancel(playback.ErrCauseStop)
+					} else if last {
+						playbackCancel(playback.ErrCauseTimeout)
 						return
-					} else {
-						log.Info("PlaybackService: bot is not last in server, continuing playback")
 					}
 				}
 			}
-		}(playbackService.ChannelID())
+		}(player.ChannelID())
 
-		err := playbackService.Run(playbackContext, wg)
+		err := player.Run(playbackContext, wg)
 		if err != nil {
 			log.Error("playback error has occured", "err", err)
 		}
 
 		stopHandlerCancel()
 
-		if err := playbackService.Cleanup(); err != nil {
-			log.Error("failure to close playbackService", "err", err)
+		if err := player.Cleanup(); err != nil {
+			log.Error("failure to close player", "err", err)
 		}
 
-		log.Info("deleting playbackService", "guildId", guildId)
-		if err := c.playbackManager.Delete(guildId); err != nil {
-			log.Error("error deleting playbackService", "guildId", guildId, "err", err)
+		log.Info("deleting player", "guildId", guildId)
+		if err := c.playerStorage.Delete(guildId); err != nil {
+			log.Error("error deleting player", "guildId", guildId, "err", err)
 		}
 	}(intr.GuildID)
 
-	return playbackService
+	return player
 }
 
 func createStopHandler(sesh *discordgo.Session, cancel context.CancelCauseFunc, guildID string) func() {
@@ -310,7 +306,7 @@ func (c *Command) handleSkip(sesh *discordgo.Session, intr *discordgo.Interactio
 		skipAmount = intr.ApplicationCommandData().Options[0].IntValue()
 	}
 
-	if ps := c.playbackManager.Get(guildID); ps != nil {
+	if ps := c.playerStorage.Get(guildID); ps != nil {
 		err := ps.Skip(int(skipAmount))
 		if errors.Is(err, playback.ErrSkipUnavailable) {
 			format.DisplayInteractionError(sesh, intr, "Nothing to skip yet.")
