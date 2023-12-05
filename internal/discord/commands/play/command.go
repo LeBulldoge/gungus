@@ -5,7 +5,7 @@ import (
 
 	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
-	"github.com/LeBulldoge/gungus/internal/discord/play/playback"
+	"github.com/LeBulldoge/gungus/internal/discord/commands/play/playback"
 	"github.com/bwmarrin/discordgo"
 )
 

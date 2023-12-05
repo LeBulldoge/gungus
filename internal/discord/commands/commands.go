@@ -1,4 +1,4 @@
-package discord
+package commands
 
 import (
 	"fmt"
@@ -6,10 +6,10 @@ import (
 
 	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
-	"github.com/LeBulldoge/gungus/internal/discord/movie"
-	"github.com/LeBulldoge/gungus/internal/discord/play"
-	"github.com/LeBulldoge/gungus/internal/discord/poll"
-	"github.com/LeBulldoge/gungus/internal/discord/quote"
+	"github.com/LeBulldoge/gungus/internal/discord/commands/movie"
+	"github.com/LeBulldoge/gungus/internal/discord/commands/play"
+	"github.com/LeBulldoge/gungus/internal/discord/commands/poll"
+	"github.com/LeBulldoge/gungus/internal/discord/commands/quote"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -30,7 +30,7 @@ var commands = map[string]Command{
 	"quote": quote.NewCommand(),
 }
 
-func setupCommands(bot *bot.Bot) error {
+func SetupCommands(bot *bot.Bot) error {
 	botUserId := bot.Session.State.User.ID
 	for name, cmd := range commands {
 		sigs := cmd.GetSignature()

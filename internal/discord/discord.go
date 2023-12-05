@@ -5,6 +5,7 @@ import (
 
 	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
+	"github.com/LeBulldoge/gungus/internal/discord/commands"
 )
 
 func StartBot(token string, storage *database.Storage) (*bot.Bot, error) {
@@ -20,7 +21,7 @@ func StartBot(token string, storage *database.Storage) (*bot.Bot, error) {
 		return bot, err
 	}
 
-	err = setupCommands(bot)
+	err = commands.SetupCommands(bot)
 	if err != nil {
 		slog.Error("error while creating commands: %v", err)
 		bot.Shutdown()

@@ -5,14 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"sync"
 	"time"
 
-	"net/url"
-
+	"github.com/LeBulldoge/gungus/internal/discord/commands/play/playback"
 	"github.com/LeBulldoge/gungus/internal/discord/embed"
 	"github.com/LeBulldoge/gungus/internal/discord/format"
-	"github.com/LeBulldoge/gungus/internal/discord/play/playback"
 	"github.com/LeBulldoge/gungus/internal/youtube"
 	"github.com/bwmarrin/discordgo"
 )
