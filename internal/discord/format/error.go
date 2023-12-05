@@ -2,9 +2,8 @@ package format
 
 import (
 	"errors"
-	"strings"
-
 	"log/slog"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )

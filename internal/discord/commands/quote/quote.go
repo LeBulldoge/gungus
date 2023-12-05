@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
-
 	"math/rand"
+	"time"
 
 	"github.com/LeBulldoge/gungus/internal/discord/format"
 	"github.com/LeBulldoge/gungus/internal/quote"

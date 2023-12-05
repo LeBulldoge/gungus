@@ -138,7 +138,6 @@ func RateMovie(ctx context.Context, storage *database.Storage, ID string, user s
       ON CONFLICT(movieId, userId) DO UPDATE SET rating=excluded.rating`,
 			ID, user, rating,
 		)
-
 		if err != nil {
 			return fmt.Errorf("failure adding a rating: %w", err)
 		}
@@ -201,7 +200,6 @@ func AddUserAsCastMember(ctx context.Context, storage *database.Storage, movieID
 			`INSERT INTO MovieCast VALUES(?, ?, ?)
       ON CONFLICT(movieId, userId) DO UPDATE SET character=excluded.character`,
 			movieID, userId, character)
-
 		if err != nil {
 			return fmt.Errorf("failure adding a character: %w", err)
 		}

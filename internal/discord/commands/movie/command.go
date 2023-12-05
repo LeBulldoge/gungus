@@ -1,9 +1,8 @@
 package movie
 
 import (
-	"strings"
-
 	"log/slog"
+	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"

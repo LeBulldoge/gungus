@@ -22,8 +22,10 @@ type MovieSearchResult struct {
 	Title string
 }
 
-const allowedDomain = "www.imdb.com"
-const searchSource = "https://www.imdb.com"
+const (
+	allowedDomain = "www.imdb.com"
+	searchSource  = "https://www.imdb.com"
+)
 
 // var reentranceFlag atomic.Int64
 

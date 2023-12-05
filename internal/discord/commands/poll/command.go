@@ -2,9 +2,8 @@ package poll
 
 import (
 	"fmt"
-	"strings"
-
 	"log/slog"
+	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/database"
 	"github.com/LeBulldoge/gungus/internal/discord/bot"
