@@ -6,7 +6,7 @@ import (
 )
 
 type PlaybackServiceManager struct {
-	sync.RWMutex
+	mu sync.RWMutex
 
 	services map[string]*PlaybackService
 }
@@ -18,8 +18,8 @@ func NewManager() PlaybackServiceManager {
 }
 
 func (m *PlaybackServiceManager) Get(guildID string) *PlaybackService {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	var res *PlaybackService
 	if ps, ok := m.services[guildID]; ok {
@@ -30,8 +30,8 @@ func (m *PlaybackServiceManager) Get(guildID string) *PlaybackService {
 }
 
 func (m *PlaybackServiceManager) Add(guildID string, ps *PlaybackService) error {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	if _, ok := m.services[guildID]; ok {
 		return errors.New("playback service already exists")
@@ -43,8 +43,8 @@ func (m *PlaybackServiceManager) Add(guildID string, ps *PlaybackService) error 
 }
 
 func (m *PlaybackServiceManager) Delete(guildID string) error {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	if _, ok := m.services[guildID]; !ok {
 		return errors.New("playback service does not exist")

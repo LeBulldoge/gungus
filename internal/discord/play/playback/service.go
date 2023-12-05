@@ -23,7 +23,7 @@ var (
 )
 
 type PlaybackService struct {
-	sync.RWMutex
+	mu sync.RWMutex
 
 	vc      *discordgo.VoiceConnection
 	running bool
@@ -43,8 +43,8 @@ func NewPlaybackService(vc *discordgo.VoiceConnection) *PlaybackService {
 }
 
 func (s *PlaybackService) EnqueueVideo(video youtube.YoutubeData) error {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if !s.running {
 		return errors.New("playback service isn't running")
 	}
@@ -55,8 +55,8 @@ func (s *PlaybackService) EnqueueVideo(video youtube.YoutubeData) error {
 }
 
 func (s *PlaybackService) getNextVideo() youtube.YoutubeData {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	video := s.queue[s.head]
 
@@ -64,8 +64,8 @@ func (s *PlaybackService) getNextVideo() youtube.YoutubeData {
 }
 
 func (s *PlaybackService) nextVideo() bool {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	s.head++
 	return s.head < len(s.queue)
@@ -87,8 +87,8 @@ func (s *PlaybackService) waitForVideos(ctx context.Context) {
 }
 
 func (s *PlaybackService) Skip(cnt int) error {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.skipFunc == nil {
 		return errors.New("nothing to skip")
 	}
@@ -102,8 +102,8 @@ func (s *PlaybackService) Skip(cnt int) error {
 }
 
 func (s *PlaybackService) Queue() []youtube.YoutubeData {
-	s.RLock()
-	defer s.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	return s.queue[s.head:]
 }
@@ -122,18 +122,18 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 	for s.nextVideo() {
 		video := s.getNextVideo()
 
-		s.Lock()
+		s.mu.Lock()
 		err := s.vc.Speaking(true)
-		s.Unlock()
+		s.mu.Unlock()
 		if err != nil {
 			return err
 		}
 
 		skipCtx, skipFunc := context.WithCancelCause(ctx)
 
-		s.Lock()
+		s.mu.Lock()
 		s.skipFunc = skipFunc
-		s.Unlock()
+		s.mu.Unlock()
 
 		slog.Info("PlaybackService: currently playing", "guild", s.vc.GuildID, "video", video.Title)
 		err = playAudioFromURL(skipCtx, video.URL, s.vc)
@@ -141,9 +141,9 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 			return err
 		}
 
-		s.Lock()
+		s.mu.Lock()
 		err = s.vc.Speaking(false)
-		s.Unlock()
+		s.mu.Unlock()
 		if err != nil {
 			return err
 		}
@@ -155,32 +155,32 @@ func (s *PlaybackService) Run(ctx context.Context, wg *sync.WaitGroup) error {
 }
 
 func (s *PlaybackService) setRunning(val bool) {
-	s.Lock()
+	s.mu.Lock()
 	s.running = val
-	s.Unlock()
+	s.mu.Unlock()
 }
 
 func (s *PlaybackService) IsRunning() bool {
-	s.RLock()
-	defer s.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.running
 }
 
 func (s *PlaybackService) Cleanup() error {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.vc.Disconnect()
 }
 
 func (s *PlaybackService) Count() int {
-	s.RLock()
-	defer s.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return len(s.queue)
 }
 
 func (s *PlaybackService) ChannelID() string {
-	s.RLock()
-	defer s.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.vc.ChannelID
 }
 
