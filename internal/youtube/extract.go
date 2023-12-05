@@ -2,16 +2,16 @@ package youtube
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"log/slog"
 	"os/exec"
 	"strings"
 
 	"github.com/LeBulldoge/gungus/internal/os"
-	"golang.org/x/net/context"
 )
 
-type YoutubeData struct {
+type Video struct {
 	URL       string
 	Title     string
 	Thumbnail string
@@ -19,16 +19,16 @@ type YoutubeData struct {
 	ID        string
 }
 
-func (d YoutubeData) GetShortURL() string {
+func (d Video) GetShortURL() string {
 	return "https://youtu.be/" + d.ID
 }
 
-type YoutubeDataResult struct {
-	Data  YoutubeData
+type SearchResult struct {
+	Video Video
 	Error error
 }
 
-func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataResult) error {
+func SearchYoutube(ctx context.Context, query string, output chan<- SearchResult) error {
 	ytdlp := exec.Command(
 		"yt-dlp",
 		"ytsearch5:"+query,
@@ -48,7 +48,7 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 		return err
 	}
 
-	res := YoutubeDataResult{}
+	res := SearchResult{}
 	go func() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
@@ -65,8 +65,8 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 				continue
 			}
 
-			res.Data.URL = parts[0]
-			res.Data.Title = parts[1]
+			res.Video.URL = parts[0]
+			res.Video.Title = parts[1]
 
 			select {
 			case <-ctx.Done():
@@ -89,7 +89,7 @@ func SearchYoutube(ctx context.Context, query string, output chan<- YoutubeDataR
 	return nil
 }
 
-func GetYoutubeData(ctx context.Context, videoURL string, output chan<- YoutubeDataResult) error {
+func GetYoutubeData(ctx context.Context, videoURL string, output chan<- SearchResult) error {
 	ytdlp := exec.Command(
 		"yt-dlp",
 		videoURL,
@@ -114,34 +114,34 @@ func GetYoutubeData(ctx context.Context, videoURL string, output chan<- YoutubeD
 	go func() {
 		defer close(output)
 
-		res := YoutubeDataResult{}
+		res := SearchResult{}
 
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
-			res.Data.Title = scanner.Text()
+			res.Video.Title = scanner.Text()
 
 			if scanner.Scan() {
-				res.Data.ID = scanner.Text()
+				res.Video.ID = scanner.Text()
 			}
 
 			if scanner.Scan() {
-				res.Data.URL = scanner.Text()
+				res.Video.URL = scanner.Text()
 			}
 
 			if scanner.Scan() {
-				res.Data.Thumbnail = scanner.Text()
+				res.Video.Thumbnail = scanner.Text()
 			}
 
 			if scanner.Scan() {
-				res.Data.Length = scanner.Text()
-				if str := strings.Count(res.Data.Length, ":"); str < 1 {
+				res.Video.Length = scanner.Text()
+				if str := strings.Count(res.Video.Length, ":"); str < 1 {
 					var sb strings.Builder
 					sb.WriteString("00:")
-					if len(res.Data.Length) < 2 {
+					if len(res.Video.Length) < 2 {
 						sb.WriteRune('0')
-						sb.WriteString(res.Data.Length)
+						sb.WriteString(res.Video.Length)
 					}
-					res.Data.Length = sb.String()
+					res.Video.Length = sb.String()
 				}
 			}
 

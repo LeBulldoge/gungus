@@ -52,7 +52,7 @@ func (c *Command) handlePlayAutocomplete(session *discordgo.Session, intr *disco
 	ctx, cancel := context.WithTimeout(context.Background(), 2900*time.Millisecond)
 	defer cancel()
 
-	ytDataChan := make(chan youtube.YoutubeDataResult, 5)
+	ytDataChan := make(chan youtube.SearchResult, 5)
 	if err := youtube.SearchYoutube(ctx, queryString, ytDataChan); err != nil {
 		log.Error("error getting youtube data", "err", err)
 		return
@@ -63,7 +63,7 @@ func (c *Command) handlePlayAutocomplete(session *discordgo.Session, intr *disco
 			log.Error("failure getting result from SearchYoutube", "err", ytData.Error)
 			continue
 		}
-		video := ytData.Data
+		video := ytData.Video
 
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
 			Name:  video.Title,
@@ -116,7 +116,7 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ytDataChan := make(chan youtube.YoutubeDataResult)
+	ytDataChan := make(chan youtube.SearchResult)
 	if err := youtube.GetYoutubeData(ctx, videoURL, ytDataChan); err != nil {
 		log.Error("error getting youtube data", "err", err)
 		format.DisplayInteractionError(session, intr, "Error getting video data from youtube. See the log for details.")
@@ -177,7 +177,7 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 			log.Error("failure getting url from GetYoutubeData", "err", ytData.Error)
 			continue
 		}
-		video := ytData.Data
+		video := ytData.Video
 
 		if err := playbackService.EnqueueVideo(video); err != nil {
 			log.Error("failed to add video to playback service", "err", err)

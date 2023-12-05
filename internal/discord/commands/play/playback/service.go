@@ -31,18 +31,18 @@ type PlaybackService struct {
 	skipFunc context.CancelCauseFunc
 
 	head  int
-	queue []youtube.YoutubeData
+	queue []youtube.Video
 }
 
 func NewPlaybackService(vc *discordgo.VoiceConnection) *PlaybackService {
 	return &PlaybackService{
 		vc:    vc,
-		queue: make([]youtube.YoutubeData, 0),
+		queue: make([]youtube.Video, 0),
 		head:  -1,
 	}
 }
 
-func (s *PlaybackService) EnqueueVideo(video youtube.YoutubeData) error {
+func (s *PlaybackService) EnqueueVideo(video youtube.Video) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.running {
@@ -54,7 +54,7 @@ func (s *PlaybackService) EnqueueVideo(video youtube.YoutubeData) error {
 	return nil
 }
 
-func (s *PlaybackService) getNextVideo() youtube.YoutubeData {
+func (s *PlaybackService) getNextVideo() youtube.Video {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -101,7 +101,7 @@ func (s *PlaybackService) Skip(cnt int) error {
 	return nil
 }
 
-func (s *PlaybackService) Queue() []youtube.YoutubeData {
+func (s *PlaybackService) Queue() []youtube.Video {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

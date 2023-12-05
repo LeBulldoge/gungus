@@ -15,7 +15,7 @@ import (
 func (c *Command) HandleQueue(sesh *discordgo.Session, intr *discordgo.InteractionCreate) {
 	guildID := intr.GuildID
 
-	var queue []youtube.YoutubeData
+	var queue []youtube.Video
 	if ps := c.playbackManager.Get(guildID); ps != nil {
 		queue = ps.Queue()
 	}
