@@ -1,6 +1,6 @@
 module github.com/LeBulldoge/gungus
 
-go 1.21.0
+go 1.21.5
 
 require (
 	github.com/ClintonCollins/dca v1.0.4
@@ -8,7 +8,6 @@ require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/gocolly/colly v1.2.0
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
-	golang.org/x/net v0.18.0
 )
 
 require (
@@ -33,6 +32,7 @@ require (
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	golang.org/x/crypto v0.15.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
+	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
