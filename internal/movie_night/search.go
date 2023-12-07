@@ -27,8 +27,6 @@ const (
 	searchSource  = "https://www.imdb.com"
 )
 
-// var reentranceFlag atomic.Int64
-
 var searchCollector *colly.Collector
 
 func initCollector() {
@@ -44,12 +42,6 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	if len(query) < 3 {
 		return []MovieSearchResult{}, nil
 	}
-
-	//	if reentranceFlag.CompareAndSwap(0, 1) {
-	//		defer reentranceFlag.Store(0)
-	//	} else {
-	//		return []MovieSearchResult{}, nil
-	//	}
 
 	if searchCollector == nil {
 		initCollector()
@@ -80,7 +72,7 @@ func SearchMovies(query string) ([]MovieSearchResult, error) {
 	return res, resErr
 }
 
-func SearchCharacters(movieId string, query string) ([]string, error) {
+func SearchCharacters(movieID string, query string) ([]string, error) {
 	if searchCollector == nil {
 		initCollector()
 	}
@@ -111,7 +103,7 @@ func SearchCharacters(movieId string, query string) ([]string, error) {
 		resErr = err
 	})
 
-	err := searchCollector.Visit(searchSource + "/title/" + movieId + "/fullcredits")
+	err := searchCollector.Visit(searchSource + "/title/" + movieID + "/fullcredits")
 	if err != nil {
 		return nil, err
 	}
