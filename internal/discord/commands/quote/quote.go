@@ -26,7 +26,7 @@ func (c *Command) addQuote(session *discordgo.Session, intr *discordgo.Interacti
 		),
 	)
 
-	err := quote.AddQuote(context.TODO(), c.GetStorage(), byUser.ID, quoteText, time.Now())
+	err := quote.AddQuote(context.TODO(), c.Storage(), byUser.ID, quoteText, time.Now())
 	if err != nil {
 		log.Error("failed saving a quote", "err", err)
 		format.DisplayInteractionError(session, intr, "Error saving a quote.")
@@ -56,9 +56,9 @@ func (c *Command) randomQuote(session *discordgo.Session, intr *discordgo.Intera
 	var err error
 	if len(opt.Options) > 0 {
 		byUser = opt.Options[0].UserValue(session)
-		quotes, err = quote.GetQuotesByUser(context.TODO(), c.GetStorage(), byUser.ID)
+		quotes, err = quote.GetQuotesByUser(context.TODO(), c.Storage(), byUser.ID)
 	} else {
-		quotes, err = quote.GetQuotes(context.TODO(), c.GetStorage())
+		quotes, err = quote.GetQuotes(context.TODO(), c.Storage())
 	}
 
 	log := c.logger.With(

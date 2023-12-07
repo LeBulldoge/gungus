@@ -87,7 +87,7 @@ func (c *Command) handlePoll(session *discordgo.Session, intr *discordgo.Interac
 	}
 
 	p.ID = msg.ID
-	err = c.GetStorage().AddPoll(p)
+	err = c.Storage().AddPoll(p)
 	if err != nil {
 		logger.Error("failed storing poll", "err", err)
 		format.DisplayInteractionError(session, intr, "Error saving poll in storage.")
@@ -112,14 +112,14 @@ func (c *Command) handleVote(session *discordgo.Session, intr *discordgo.Interac
 		),
 	)
 
-	err = c.GetStorage().CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
+	err = c.Storage().CastVote(intr.Message.ID, voteCustomID, intr.Member.User.ID)
 	if err != nil {
 		logger.Error("error casting vote", "err", err)
 		format.DisplayInteractionError(session, intr, "Error casting vote.")
 		return
 	}
 
-	p, err := c.GetStorage().GetPoll(intr.Message.ID)
+	p, err := c.Storage().GetPoll(intr.Message.ID)
 	if err != nil {
 		logger.Error("error getting poll", "err", err)
 		format.DisplayInteractionError(session, intr, "Error getting poll from storage.")

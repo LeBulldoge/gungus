@@ -40,6 +40,6 @@ func (s *WithStorage) SetStorageConnection(storage *Storage) {
 	s.storage = storage
 }
 
-func (s *WithStorage) GetStorage() *Storage {
+func (s *WithStorage) Storage() *Storage {
 	return s.storage
 }
