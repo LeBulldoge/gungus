@@ -31,12 +31,12 @@ var commands = map[string]Command{
 }
 
 func SetupCommands(bot *bot.Bot) error {
-	botUserId := bot.Session.State.User.ID
+	botUserID := bot.Session.State.User.ID
 	for name, cmd := range commands {
 		sigs := cmd.GetSignature()
 		for _, sig := range sigs {
 			regCmd, err := bot.Session.ApplicationCommandCreate(
-				botUserId, "", sig,
+				botUserID, "", sig,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to register %s: %w", sig.Name, err)
