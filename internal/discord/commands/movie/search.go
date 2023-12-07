@@ -1,4 +1,4 @@
-package movienight
+package movie
 
 import (
 	"net/url"
@@ -17,7 +17,7 @@ Movie Night
 * Did they say the name of the movie
 */
 
-type MovieSearchResult struct {
+type SearchResult struct {
 	ID    string
 	Title string
 }
@@ -38,19 +38,19 @@ func initCollector() {
 	)
 }
 
-func SearchMovies(query string) ([]MovieSearchResult, error) {
+func SearchMovies(query string) ([]SearchResult, error) {
 	if len(query) < 3 {
-		return []MovieSearchResult{}, nil
+		return []SearchResult{}, nil
 	}
 
 	if searchCollector == nil {
 		initCollector()
 	}
 
-	res := []MovieSearchResult{}
+	res := []SearchResult{}
 	var resErr error
 	searchCollector.OnHTML("li.find-title-result", func(h *colly.HTMLElement) {
-		movie := MovieSearchResult{}
+		movie := SearchResult{}
 		movie.ID = h.ChildAttr("a", "href")
 		movie.ID = strings.Split(movie.ID, "/")[2] // /title/[tt000000]/?ref_=fn_tt_tt_1
 		movie.Title = h.ChildText("a")

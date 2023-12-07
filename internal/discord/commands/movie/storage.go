@@ -1,4 +1,4 @@
-package movienight
+package movie
 
 import (
 	"context"

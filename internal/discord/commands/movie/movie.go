@@ -11,7 +11,6 @@ import (
 
 	"github.com/LeBulldoge/gungus/internal/discord/embed"
 	"github.com/LeBulldoge/gungus/internal/discord/format"
-	movienight "github.com/LeBulldoge/gungus/internal/movie_night"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -28,7 +27,7 @@ func (c *Command) addMovie(session *discordgo.Session, intr *discordgo.Interacti
 			),
 		)
 
-		err := movienight.AddMovie(
+		err := AddMovie(
 			context.TODO(),
 			c.Storage(),
 			movieID,
@@ -66,7 +65,7 @@ func (c *Command) addMovie(session *discordgo.Session, intr *discordgo.Interacti
 			),
 		)
 
-		movies, err := movienight.SearchMovies(movieID)
+		movies, err := SearchMovies(movieID)
 		if err != nil {
 			log.Error("error searching movies", "err", err)
 			format.DisplayInteractionWithError(session, intr, "Error searching movies.", err)
@@ -93,7 +92,7 @@ func (c *Command) addMovie(session *discordgo.Session, intr *discordgo.Interacti
 	}
 }
 
-func embedFromMovie(session *discordgo.Session, guildID string, movie movienight.Movie) (*discordgo.MessageEmbed, error) {
+func embedFromMovie(session *discordgo.Session, guildID string, movie Movie) (*discordgo.MessageEmbed, error) {
 	user, err := session.GuildMember(guildID, movie.AddedBy)
 	if err != nil {
 		return nil, err
@@ -139,7 +138,7 @@ func embedFromMovie(session *discordgo.Session, guildID string, movie movienight
 }
 
 func (c *Command) movieList(session *discordgo.Session, intr *discordgo.InteractionCreate) {
-	movies, err := movienight.GetMovies(context.TODO(), c.Storage())
+	movies, err := GetMovies(context.TODO(), c.Storage())
 	log := c.logger.With(
 		slog.Group(
 			"list",
@@ -224,7 +223,7 @@ func (c *Command) movieListPaginate(session *discordgo.Session, intr *discordgo.
 		return
 	}
 
-	movies, err := movienight.GetMovies(context.TODO(), c.Storage())
+	movies, err := GetMovies(context.TODO(), c.Storage())
 	if err != nil {
 		log.Error("error getting a movie", "err", err)
 		format.DisplayInteractionWithError(session, intr, "Error getting movie.", err)
@@ -298,7 +297,7 @@ func (c *Command) movieListPaginate(session *discordgo.Session, intr *discordgo.
 }
 
 func (c *Command) buildResponseWithMovieEmbed(session *discordgo.Session, intr *discordgo.InteractionCreate, movieID string) (*discordgo.InteractionResponse, error) {
-	movie, err := movienight.GetMovie(context.TODO(), c.Storage(), movieID)
+	movie, err := GetMovie(context.TODO(), c.Storage(), movieID)
 	if err != nil {
 		return nil, fmt.Errorf("failure getting a movie: %w", err)
 	}
@@ -332,7 +331,7 @@ func (c *Command) rateMovie(session *discordgo.Session, intr *discordgo.Interact
 			return
 		}
 
-		err := movienight.RateMovie(context.TODO(), c.Storage(), movieID, intr.Member.User.ID, rating)
+		err := RateMovie(context.TODO(), c.Storage(), movieID, intr.Member.User.ID, rating)
 		if err != nil {
 			log.Error("failure rating a movie", "err", err)
 			format.DisplayInteractionWithError(session, intr, "Error rating movie.", err)
@@ -368,7 +367,7 @@ func (c *Command) movieDelete(session *discordgo.Session, intr *discordgo.Intera
 		movieID := opt.Options[0].StringValue()
 		log := c.logger.WithGroup("delete").With("movieId", movieID)
 
-		err := movienight.DeleteMovie(context.TODO(), c.Storage(), movieID)
+		err := DeleteMovie(context.TODO(), c.Storage(), movieID)
 		if err != nil {
 			log.Error("failure deleting movie", "err", err)
 			format.DisplayInteractionWithError(session, intr, "Error deleting movie.", err)
@@ -396,7 +395,7 @@ func (c *Command) movieDelete(session *discordgo.Session, intr *discordgo.Intera
 func (c *Command) moveListAutocomplete(session *discordgo.Session, intr *discordgo.InteractionCreate) error {
 	opt := intr.ApplicationCommandData().Options[0]
 	title := opt.Options[0].StringValue()
-	movies, err := movienight.GetMoviesByTitle(context.TODO(), c.Storage(), title)
+	movies, err := GetMoviesByTitle(context.TODO(), c.Storage(), title)
 	if err != nil {
 		return fmt.Errorf("failure getting movies by title: %w", err)
 	}
@@ -425,7 +424,7 @@ func (c *Command) moveListAutocomplete(session *discordgo.Session, intr *discord
 
 func (c *Command) movieCastAutocomplete(session *discordgo.Session, intr *discordgo.InteractionCreate) error {
 	opt := intr.ApplicationCommandData().Options[0]
-	cast, err := movienight.SearchCharacters(opt.Options[0].StringValue(), opt.Options[1].StringValue())
+	cast, err := SearchCharacters(opt.Options[0].StringValue(), opt.Options[1].StringValue())
 	if err != nil {
 		return fmt.Errorf("failure getting movie cast: %w", err)
 	}
@@ -466,7 +465,7 @@ func (c *Command) addUserAsCastMember(session *discordgo.Session, intr *discordg
 
 		log := c.logger.WithGroup("cast").With("movieId", movieID, "character", character)
 
-		err := movienight.AddUserAsCastMember(context.TODO(), c.Storage(), movieID, intr.Member.User.ID, character)
+		err := AddUserAsCastMember(context.TODO(), c.Storage(), movieID, intr.Member.User.ID, character)
 		if err != nil {
 			log.Error("failure adding cast member for movie", "err", err)
 			format.DisplayInteractionWithError(session, intr, "Error adding you as a cast member.", err)

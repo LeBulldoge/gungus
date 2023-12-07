@@ -1,4 +1,4 @@
-package movienight
+package movie
 
 import (
 	"reflect"
@@ -7,7 +7,7 @@ import (
 
 func TestSearchMovie(t *testing.T) {
 	query := "alien"
-	want := MovieSearchResult{
+	want := SearchResult{
 		ID:    "tt0078748",
 		Title: "Alien",
 	}
