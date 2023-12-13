@@ -1,6 +1,7 @@
 package play
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/LeBulldoge/gungus/internal/database"
@@ -12,12 +13,15 @@ import (
 type Command struct {
 	playerStorage playback.PlayerStorage
 
+	autocompleteCancelMap map[string]context.CancelFunc
+
 	logger *slog.Logger
 }
 
 func NewCommand() *Command {
 	return &Command{
-		playerStorage: playback.NewManager(),
+		playerStorage:         playback.NewManager(),
+		autocompleteCancelMap: map[string]context.CancelFunc{},
 	}
 }
 

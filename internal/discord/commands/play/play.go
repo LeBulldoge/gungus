@@ -49,8 +49,19 @@ func (c *Command) handlePlayAutocomplete(session *discordgo.Session, intr *disco
 	}
 
 	log.Info("searching for videos")
+
+	cancelKey := intr.Member.User.ID
+	if cancel, ok := c.autocompleteCancelMap[cancelKey]; ok {
+		log.Info("cancelling ongoing autocomplete process")
+		cancel()
+		delete(c.autocompleteCancelMap, cancelKey)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2900*time.Millisecond)
 	defer cancel()
+
+	c.autocompleteCancelMap[cancelKey] = cancel
+	defer delete(c.autocompleteCancelMap, intr.Member.User.ID)
 
 	ytDataChan := make(chan youtube.SearchResult, 5)
 	if err := youtube.SearchYoutube(ctx, queryString, ytDataChan); err != nil {
