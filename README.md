@@ -23,7 +23,8 @@ Command `/poll start` generates a poll with up to 6 options, 2 of which are requ
 
 * Quotes
 
-Command `/quote add` saves a quote by a particular user, `/quote random` to show a random quote:
+`/quote add` save a quote by a particular user.
+`/quote random <by_user>` show a random quote. If `by_user` is omitted, selects a random user.
 ```
 /quote add by_user:@Gungus text:This is a quote
 /quote random by_user:@Gungus
@@ -44,5 +45,6 @@ Command `/quote add` saves a quote by a particular user, `/quote random` to show
 
 * Youtube audio playback
 
-`/play` adds a link to the playback queue.
+`/play <query|link>` adds a link to the playback queue, or searches youtube for a video based on the provided query, returns results via autocomplete.
+`/skip <amount>` skip song(s) from the queue (default 1).
 `/stop` stops playback and disconnects the bot.
