@@ -21,7 +21,7 @@ func IsCustomEmoji(s string) bool {
 	return s[0] == '<'
 }
 
-func EmojiComponentFromString(s string) discordgo.ComponentEmoji {
+func EmojiComponentFromString(s string) *discordgo.ComponentEmoji {
 	emoji := discordgo.ComponentEmoji{}
 	if IsCustomEmoji(s) {
 		s = s[1 : len(s)-2]
@@ -34,7 +34,7 @@ func EmojiComponentFromString(s string) discordgo.ComponentEmoji {
 		emoji.Name = strings.Trim(s, " ")
 	}
 
-	return emoji
+	return &emoji
 }
 
 func GetMemberDisplayName(member *discordgo.Member) string {

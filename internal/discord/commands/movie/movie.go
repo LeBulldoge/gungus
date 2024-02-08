@@ -179,21 +179,21 @@ func (c *Command) movieList(session *discordgo.Session, intr *discordgo.Interact
 					Components: []discordgo.MessageComponent{
 						discordgo.Button{
 							CustomID: "movielist_" + intr.ID + "_back",
-							Emoji: discordgo.ComponentEmoji{
+							Emoji: &discordgo.ComponentEmoji{
 								Name: "⬅️",
 							},
 							Style: discordgo.SecondaryButton,
 						},
 						discordgo.Button{
 							CustomID: "movielist_" + intr.ID + "_forward",
-							Emoji: discordgo.ComponentEmoji{
+							Emoji: &discordgo.ComponentEmoji{
 								Name: "➡️",
 							},
 							Style: discordgo.SecondaryButton,
 						},
 						discordgo.Button{
 							CustomID: "movielist_" + intr.ID + "_refresh",
-							Emoji: discordgo.ComponentEmoji{
+							Emoji: &discordgo.ComponentEmoji{
 								Name: "🔄",
 							},
 							Style: discordgo.SecondaryButton,
@@ -203,7 +203,6 @@ func (c *Command) movieList(session *discordgo.Session, intr *discordgo.Interact
 			},
 		},
 	})
-
 	if err != nil {
 		log.Error("error responding to request", "err", err)
 		return
@@ -414,7 +413,6 @@ func (c *Command) moveListAutocomplete(session *discordgo.Session, intr *discord
 			Choices: choices,
 		},
 	})
-
 	if err != nil {
 		return fmt.Errorf("error responding to request: %w", err)
 	}
@@ -447,7 +445,6 @@ func (c *Command) movieCastAutocomplete(session *discordgo.Session, intr *discor
 			Choices: choices,
 		},
 	})
-
 	if err != nil {
 		return fmt.Errorf("error responding to request: %w", err)
 	}
