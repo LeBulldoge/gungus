@@ -168,6 +168,9 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 
 		voice, err := session.ChannelVoiceJoin(intr.GuildID, channelID, false, true)
 		if err != nil {
+			if voice != nil {
+				voice.Close()
+			}
 			log.Error("failure joining voice channel", "channelId", channelID, "err", err)
 			format.DisplayInteractionError(session, intr, "Error joining voice channel.")
 			return
@@ -177,6 +180,9 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 		wg.Add(1)
 		player = c.setupPlayer(session, intr, voice, log, &wg)
 		if player == nil {
+			if voice != nil {
+				voice.Close()
+			}
 			format.DisplayInteractionError(session, intr, "Error starting playback.")
 			return
 		}
