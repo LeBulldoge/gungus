@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"os/exec"
+	"slices"
 	"sync"
 	"time"
 
@@ -56,6 +57,18 @@ func (s *Player) EnqueueVideo(video youtube.Video) error {
 	}
 
 	s.queue = append(s.queue, video)
+
+	return nil
+}
+
+func (s *Player) Insert(video youtube.Video, index int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.running {
+		return errors.New("playback service isn't running")
+	}
+
+	s.queue = slices.Insert(s.queue, s.head+index, video)
 
 	return nil
 }
@@ -181,7 +194,7 @@ func (s *Player) Cleanup() error {
 func (s *Player) Count() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return len(s.queue)
+	return len(s.queue) - s.head
 }
 
 func (s *Player) ChannelID() string {

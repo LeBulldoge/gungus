@@ -27,6 +27,7 @@ func NewCommand() *Command {
 
 var (
 	skipMinValue        = 1.0
+	positionMinValue    = 1.0
 	queueAmountMinValue = 1.0
 )
 
@@ -43,6 +44,12 @@ func (c *Command) GetSignature() []*discordgo.ApplicationCommand {
 					Type:         discordgo.ApplicationCommandOptionString,
 					Required:     true,
 					Autocomplete: true,
+				},
+				{
+					Name:        "at",
+					Description: "Position to insert at",
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					MinValue:    &positionMinValue,
 				},
 			},
 		},

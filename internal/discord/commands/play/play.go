@@ -105,6 +105,10 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 	}
 	opt := intr.ApplicationCommandData()
 	queryString := opt.Options[0].StringValue()
+	index := -1
+	if len(opt.Options) > 1 {
+		index = int(opt.Options[1].IntValue())
+	}
 
 	log := c.logger.With("query", queryString)
 
@@ -196,9 +200,17 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 		}
 		video := ytData.Video
 
-		if err := player.EnqueueVideo(video); err != nil {
-			log.Error("failed to add video to playback service", "err", err)
-			return
+		if index < 1 {
+			if err := player.EnqueueVideo(video); err != nil {
+				log.Error("failed to add video to playback service", "err", err)
+				return
+			}
+		} else {
+			if err := player.Insert(video, index); err != nil {
+				log.Error("failed to insert video to playback service", "err", err)
+				return
+			}
+			index++
 		}
 
 		log.Info("added video to player", "video", video.Title)
