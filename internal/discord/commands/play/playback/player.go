@@ -194,6 +194,9 @@ func (s *Player) Cleanup() error {
 func (s *Player) Count() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	if s.head < 0 {
+		return 0
+	}
 	return len(s.queue) - s.head
 }
 
