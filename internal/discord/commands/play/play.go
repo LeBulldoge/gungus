@@ -196,6 +196,7 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 	for ytData := range ytDataChan {
 		if ytData.Error != nil {
 			log.Error("failure getting url from GetYoutubeData", "err", ytData.Error)
+			format.DisplayInteractionError(session, intr, "Error getting song data.")
 			continue
 		}
 		video := ytData.Video
