@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"iter"
 	"log/slog"
 	"os/exec"
 	"slices"
@@ -32,7 +33,6 @@ type Player struct {
 
 	skipFunc context.CancelCauseFunc
 
-	head  int
 	queue []youtube.Video
 
 	logger *slog.Logger
@@ -42,14 +42,13 @@ func NewPlayer(vc *discordgo.VoiceConnection) *Player {
 	return &Player{
 		vc:    vc,
 		queue: make([]youtube.Video, 0),
-		head:  -1,
 		logger: slog.Default().
 			WithGroup("player").
 			With("guildID", vc.GuildID, "channelID", vc.ChannelID),
 	}
 }
 
-func (s *Player) EnqueueVideo(video youtube.Video) error {
+func (s *Player) Add(video youtube.Video) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.running {
@@ -68,26 +67,27 @@ func (s *Player) Insert(video youtube.Video, index int) error {
 		return errors.New("playback service isn't running")
 	}
 
-	s.queue = slices.Insert(s.queue, s.head+index, video)
+	if index >= len(s.queue) {
+		return errors.New("insert index is higher than queue length")
+	}
+
+	s.queue = slices.Insert(s.queue, index, video)
 
 	return nil
 }
 
-func (s *Player) getNextVideo() youtube.Video {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	video := s.queue[s.head]
-
-	return video
-}
-
-func (s *Player) nextVideo() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.head++
-	return s.head < len(s.queue)
+func (s *Player) getNextVideo() iter.Seq[youtube.Video] {
+	return func(yield func(video youtube.Video) bool) {
+		for len(s.queue) > 0 {
+			s.mu.Lock()
+			video := s.queue[0]
+			s.queue = s.queue[1:]
+			s.mu.Unlock()
+			if !yield(video) {
+				return
+			}
+		}
+	}
 }
 
 func (s *Player) waitForVideos(ctx context.Context) {
@@ -96,7 +96,7 @@ func (s *Player) waitForVideos(ctx context.Context) {
 			return
 		}
 
-		t := time.After(time.Second)
+		t := time.After(time.Minute)
 		select {
 		case <-ctx.Done():
 			return
@@ -115,8 +115,6 @@ func (s *Player) Skip(cnt int) error {
 	s.skipFunc(ErrCauseSkip)
 	s.skipFunc = nil
 
-	s.head += (cnt - 1)
-
 	return nil
 }
 
@@ -124,7 +122,7 @@ func (s *Player) Queue() []youtube.Video {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.queue[s.head:]
+	return s.queue
 }
 
 func (s *Player) Run(ctx context.Context, wg *sync.WaitGroup) error {
@@ -138,12 +136,8 @@ func (s *Player) Run(ctx context.Context, wg *sync.WaitGroup) error {
 	wg.Done()
 	s.waitForVideos(ctx)
 
-	for s.nextVideo() {
-		video := s.getNextVideo()
-
-		s.mu.Lock()
+	for video := range s.getNextVideo() {
 		err := s.vc.Speaking(true)
-		s.mu.Unlock()
 		if err != nil {
 			return err
 		}
@@ -160,9 +154,7 @@ func (s *Player) Run(ctx context.Context, wg *sync.WaitGroup) error {
 			return err
 		}
 
-		s.mu.Lock()
 		err = s.vc.Speaking(false)
-		s.mu.Unlock()
 		if err != nil {
 			return err
 		}
@@ -188,6 +180,7 @@ func (s *Player) IsRunning() bool {
 func (s *Player) Cleanup() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.queue = nil
 	return s.vc.Disconnect()
 }
 
@@ -208,6 +201,10 @@ func (s *Player) playAudioFromURL(ctx context.Context, url string, vc *discordgo
 	ytdlp := exec.Command(
 		"yt-dlp",
 		url,
+		"--no-part",
+		"--buffer-size", "16K",
+		"--limit-rate", "50K",
+		"-f", "bestaudio",
 		"--cache-dir", os.CachePath("ytdlp"),
 		"-o", "-",
 	)
@@ -223,13 +220,12 @@ func (s *Player) playAudioFromURL(ctx context.Context, url string, vc *discordgo
 
 	options := dca.StdEncodeOptions
 	options.RawOutput = true
-	options.Bitrate = 128
+	options.Bitrate = 64
 	options.Channels = 2
-	options.Application = dca.AudioApplicationLowDelay
+	options.Application = dca.AudioApplicationAudio
 	options.VolumeFloat = -10.0
 	options.VBR = true
 	options.Threads = 0
-	options.BufferedFrames = 512
 	options.PacketLoss = 0
 
 	session, err := dca.EncodeMem(stdout, options)

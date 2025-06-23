@@ -202,7 +202,7 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 		video := ytData.Video
 
 		if index < 1 {
-			if err := player.EnqueueVideo(video); err != nil {
+			if err := player.Add(video); err != nil {
 				log.Error("failed to add video to playback service", "err", err)
 				return
 			}
