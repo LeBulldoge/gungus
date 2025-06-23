@@ -1,6 +1,6 @@
 module github.com/LeBulldoge/gungus
 
-go 1.21.5
+go 1.23.0
 
 require (
 	github.com/ClintonCollins/dca v1.0.4
