@@ -96,7 +96,7 @@ func (s *Player) waitForVideos(ctx context.Context) {
 			return
 		}
 
-		t := time.After(time.Minute)
+		t := time.After(time.Second)
 		select {
 		case <-ctx.Done():
 			return
