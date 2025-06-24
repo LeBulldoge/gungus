@@ -201,6 +201,7 @@ func (s *Player) playAudioFromURL(ctx context.Context, url string, vc *discordgo
 	ytdlp := exec.Command(
 		"yt-dlp",
 		url,
+		"--downloader", "ffmpeg",
 		"--no-part",
 		"--buffer-size", "16K",
 		"--limit-rate", "50K",
