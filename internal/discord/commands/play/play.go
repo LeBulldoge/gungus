@@ -87,6 +87,7 @@ var allowedHosts = []string{
 	"www.youtube.com",
 	"youtube.com",
 	"youtu.be",
+	"music.youtube.com",
 }
 
 func isHostAllowed(host string) bool {
