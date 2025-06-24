@@ -243,16 +243,6 @@ func (s *Player) playAudioFromURL(ctx context.Context, url string, vc *discordgo
 	}
 	defer ytdlp.Wait()
 
-	go func() {
-		sc := bufio.NewScanner(stderr)
-		for sc.Scan() {
-			s.logger.Info("ytdlp stderr", "output", sc.Text())
-		}
-		if err := sc.Err(); err != nil {
-			s.logger.Error("ytdlp stderr reader error", "err", err)
-		}
-	}()
-
 	select {
 	case <-ctx.Done():
 		if err := session.Stop(); err != nil {
