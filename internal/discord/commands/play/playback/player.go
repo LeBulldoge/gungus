@@ -1,7 +1,6 @@
 package playback
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"io"
@@ -149,7 +148,7 @@ func (s *Player) Run(ctx context.Context, wg *sync.WaitGroup) error {
 		s.mu.Unlock()
 
 		s.logger.Info("currently playing", "guild", s.vc.GuildID, "video", video.Title)
-		err = s.playAudioFromURL(skipCtx, video.URL, s.vc)
+		err = s.playAudio(skipCtx, video.ID, s.vc)
 		if err != nil && !errors.Is(err, ErrCauseSkip) {
 			return err
 		}
@@ -197,10 +196,10 @@ func (s *Player) ChannelID() string {
 	return s.vc.ChannelID
 }
 
-func (s *Player) playAudioFromURL(ctx context.Context, url string, vc *discordgo.VoiceConnection) error {
+func (s *Player) playAudio(ctx context.Context, ID string, vc *discordgo.VoiceConnection) error {
 	ytdlp := exec.Command(
 		"yt-dlp",
-		url,
+		ID,
 		"--downloader", "ffmpeg",
 		"--no-part",
 		"--buffer-size", "16K",

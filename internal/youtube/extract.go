@@ -93,12 +93,11 @@ func GetYoutubeData(ctx context.Context, videoURL string, output chan<- SearchRe
 	ytdlp := exec.Command(
 		"yt-dlp",
 		videoURL,
-		"-f", "ba",
 		"--get-title",
 		"--get-id",
-		"--get-url",
-		"--get-thumbnail",
 		"--get-duration",
+		"--flat-playlist",
+		"--no-playlist",
 		"--cache-dir", os.CachePath("ytdlp"),
 	)
 
@@ -125,24 +124,7 @@ func GetYoutubeData(ctx context.Context, videoURL string, output chan<- SearchRe
 			}
 
 			if scanner.Scan() {
-				res.Video.URL = scanner.Text()
-			}
-
-			if scanner.Scan() {
-				res.Video.Thumbnail = scanner.Text()
-			}
-
-			if scanner.Scan() {
 				res.Video.Length = scanner.Text()
-				if str := strings.Count(res.Video.Length, ":"); str < 1 {
-					var sb strings.Builder
-					sb.WriteString("00:")
-					if len(res.Video.Length) < 2 {
-						sb.WriteRune('0')
-						sb.WriteString(res.Video.Length)
-					}
-					res.Video.Length = sb.String()
-				}
 			}
 
 			select {

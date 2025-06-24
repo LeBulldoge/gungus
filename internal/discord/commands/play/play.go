@@ -132,7 +132,7 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ytDataChan := make(chan youtube.SearchResult)
+	ytDataChan := make(chan youtube.SearchResult, 50)
 	if err := youtube.GetYoutubeData(ctx, videoURL, ytDataChan); err != nil {
 		log.Error("error getting youtube data", "err", err)
 		format.DisplayInteractionError(session, intr, "Error getting video data from youtube. See the log for details.")
@@ -221,7 +221,6 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 			SetAuthor("Added to queue").
 			SetTitle(video.Title).
 			SetUrl(video.GetShortURL()).
-			SetThumbnail(video.Thumbnail).
 			SetDescription(video.Length).
 			SetFooter(fmt.Sprintf("Queue length: %d", player.Count()), "").
 			MessageEmbed
