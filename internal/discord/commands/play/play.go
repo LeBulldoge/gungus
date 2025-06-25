@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -112,6 +113,7 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 	}
 
 	log := c.logger.With("query", queryString)
+	log.Info("received query")
 
 	url, err := url.ParseRequestURI(queryString)
 	if err != nil {
@@ -125,7 +127,56 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 		return
 	}
 
+	err = session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Flags: discordgo.MessageFlagsEphemeral,
+		},
+	})
+	if err != nil {
+		log.Error("failure responding to interaction", "err", err)
+		return
+	}
+
 	videoURL := url.String()
+	if url.Query().Has("list") && !url.Query().Has("watch") {
+		log.Info("requesting confirmation for playlist")
+
+		confirmChan := make(chan bool)
+		cancel, err := c.handlePlaylist(session, intr, confirmChan)
+		if err != nil {
+			log.Error("error while handling playlist", "err", err)
+			return
+		}
+
+		timeoutChan := time.After(time.Minute)
+		select {
+		case result := <-confirmChan:
+			if !result {
+				log.Info("declined adding playlist")
+				cancel()
+				return
+			}
+			log.Info("confirmed adding playlist")
+		case <-timeoutChan:
+			log.Info("playlist confirmation timed out")
+			cancel()
+			session.InteractionResponseEdit(intr.Interaction, &discordgo.WebhookEdit{
+				Components: &[]discordgo.MessageComponent{
+					discordgo.Container{
+						Components: []discordgo.MessageComponent{
+							discordgo.TextDisplay{Content: "## Playlist confirmation"},
+							discordgo.TextDisplay{Content: "Confirmation for adding a playlist timed out"},
+						},
+					},
+				},
+			})
+			return
+		}
+
+		cancel()
+
+	}
 
 	log.Info("requesting video data", "url", videoURL)
 
@@ -136,14 +187,6 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 	if err := youtube.GetYoutubeData(ctx, videoURL, ytDataChan); err != nil {
 		log.Error("error getting youtube data", "err", err)
 		format.DisplayInteractionError(session, intr, "Error getting video data from youtube. See the log for details.")
-		return
-	}
-
-	err = session.InteractionRespond(intr.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-	})
-	if err != nil {
-		log.Error("failure responding to interaction", "err", err)
 		return
 	}
 
@@ -233,6 +276,68 @@ func (c *Command) handlePlay(session *discordgo.Session, intr *discordgo.Interac
 			return
 		}
 	}
+}
+
+func (c *Command) handlePlaylist(session *discordgo.Session, intr *discordgo.InteractionCreate, confirm chan bool) (func(), error) {
+	_, err := session.FollowupMessageCreate(intr.Interaction, true, &discordgo.WebhookParams{
+		Flags: discordgo.MessageFlagsEphemeral | discordgo.MessageFlagsIsComponentsV2,
+		Components: []discordgo.MessageComponent{
+			discordgo.Container{
+				Components: []discordgo.MessageComponent{
+					discordgo.TextDisplay{Content: "## Playlist confirmation"},
+					discordgo.TextDisplay{Content: "You are about to add a playlist. Are you sure?"},
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label:    "Yes",
+								CustomID: "playlistConfirm_Yes",
+								Style:    discordgo.PrimaryButton,
+							},
+							discordgo.Button{
+								Label:    "No",
+								CustomID: "playlistConfirm_No",
+								Style:    discordgo.DangerButton,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failure creating followup message to interaction: %w", err)
+	}
+
+	cancel := session.AddHandler(func(sesh *discordgo.Session, buttonIntr *discordgo.InteractionCreate) {
+		switch buttonIntr.Type {
+		case discordgo.InteractionMessageComponent:
+			customID := buttonIntr.MessageComponentData().CustomID
+			if !strings.HasPrefix(customID, "playlistConfirm") {
+				return
+			}
+
+			confirmed := strings.Split(customID, "_")[1] == "Yes"
+
+			if confirmed {
+				session.InteractionResponseEdit(intr.Interaction, &discordgo.WebhookEdit{
+					Components: &[]discordgo.MessageComponent{
+						discordgo.Container{
+							Components: []discordgo.MessageComponent{
+								discordgo.TextDisplay{Content: "## Playlist confirmation"},
+								discordgo.TextDisplay{Content: "Adding playlist..."},
+							},
+						},
+					},
+				})
+			} else {
+				session.InteractionResponseDelete(intr.Interaction)
+			}
+
+			confirm <- confirmed
+		}
+	})
+
+	return cancel, nil
 }
 
 func (c *Command) setupPlayer(session *discordgo.Session, intr *discordgo.InteractionCreate, voice *discordgo.VoiceConnection, log *slog.Logger, wg *sync.WaitGroup) *playback.Player {
