@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/ClintonCollins/dca v1.0.4
 	github.com/LeBulldoge/sqlighter v0.0.0-20231116234223-e61d56e4594a
-	github.com/bwmarrin/discordgo v0.28.1
+	github.com/bwmarrin/discordgo v0.29.0
 	github.com/gocolly/colly v1.2.0
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 )
